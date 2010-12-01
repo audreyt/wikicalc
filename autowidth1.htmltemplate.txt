@@ -1,0 +1,37 @@
+{{templatedescriptionline}}Full width with header and footer, gray
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>{{pagetitle}}</title>
+<style type="text/css">
+body, td, input, textarea {font-family:verdana,helvetica,sans-serif;font-size:small;}
+.smaller {font-size: smaller;}
+dd {padding: 1pt 0px 2pt 0px;}
+dt {font-weight: bold; padding: 1pt 0px 1pt 0px;}
+#fullpage {margin:0px; padding:10px; background-color:#CCCCCC;}
+#allcontent {width:auto; margin: 0 auto 0 auto; border:1px solid black;}
+#topcontent {padding:6px; background-color:#666666; color:white; font-size:larger; font-weight:bold;}
+#sidecontent {width:100px; float:right; padding:4px; background-color:white;}
+#maincontent {width:auto; padding:4px; background-color:white;}
+#bottomcontent {clear:both; padding:4px; background-color:#999999;}
+{{sheetstyles}}
+</style>
+</head>
+<body id="fullpage">
+<div id="allcontent">
+<div id="topcontent">
+{{pagetitle}}
+</div>
+<div id="maincontent">
+{{sheet0}}
+</div>
+<div id="bottomcontent">
+<span class="smaller">{{pagetitle}} ({{pagename}}.html), {{pubdatetime}}
+{{line-if-liveview}}{{line-if-editurl}}{{line-if-loggedin}}<br><a href="{{editurl}}?view=logout">Logout {{loggedinuser}}</a>
+</span>
+{{editthispagehtml}}
+</div>
+</div>
+</body>
+</html>

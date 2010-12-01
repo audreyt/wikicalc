@@ -1,0 +1,25 @@
+{{templatedescriptionline}}Wide heading then 8 columns
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=wkc-boundary
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.1
+fullname:Wide heading then 8 columns
+templatetext:
+templatefile:
+lastmodified:Fri Jun  2 17\c03\c19 2006
+lastauthor:danb
+basefiledt:
+backupfiledt:
+reverted:
+editcomments:
+publishsource:
+publishlive:
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.2
+cell:A1:t:This template has a cell at the top that spans 8 columns and then normal cells below. It is useful when you have some header information and then a normal spreadsheet layout below.\n\n''To replace this text, just click on it and type the new text or press the Delete key.'':colspan:8
+sheet:r:2:c:8
+--wkc-boundary--

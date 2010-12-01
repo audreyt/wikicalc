@@ -1,0 +1,5 @@
+filetype:wkcsiteinfo:version:1
+ftpdatetime:Oct 1, 2010 01\c10\c41
+file:ax:filename:ax.html:fullnamepublished::dtmpublished::size::pubstatus::author:demoauthor:fullnameedit:axax:dtmedit:Oct 1, 2010 01\c09\c48:editstatus:modified
+file:demopage1:filename:demopage1.html:fullnamepublished::dtmpublished::size::pubstatus::author:demoauthor:fullnameedit:wikiCalc Demonstration Page:dtmedit:Sep 30, 2010 00\c46\c06:editstatus:1
+file:fll:filename:fll.html:fullnamepublished::dtmpublished::size::pubstatus::author:demoauthor:fullnameedit:bar:dtmedit:Oct 1, 2010 01\c10\c41:editstatus:modified

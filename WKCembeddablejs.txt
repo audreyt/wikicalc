@@ -1,0 +1,32 @@
+// Embeddable spreadsheet
+function pl(line,styles) {
+ var cpos=line.indexOf("|");
+ var cmd=line.substr(0,cpos);
+ var parts=line.substr(0,cpos).split(/\:/);
+ if (parts[0]=='c' && parts.length==1) return line.substr(cpos+1);
+ var plstr='<td ';
+ if (parts[1]=='y') {
+  plstr+='class="'+parts[0]+'" style="';
+  }
+ else {
+  plstr+='style="'+styles[parts[0]];
+  }
+ if (parts[4] && parts[4].substr(0,1)=="*") {
+  plstr+=";"+cmd.substr(cmd.indexOf("*")+1);
+  }
+ plstr+='"';
+ if (parts[2]>1) plstr+=' colspan='+parts[2];
+ if (parts[3]>1) plstr+=' rowspan='+parts[3];
+ plstr+='>'+line.substr(cpos+1)+'</td>';
+ return plstr;
+ }
+function embedwkcsheet() {
+ var styles={};
+{{stylestr}}
+ var str='';
+{{sheetstr}}
+ document.write(str);
+ return;
+}
+embedwkcsheet();
+

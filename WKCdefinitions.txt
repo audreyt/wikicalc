@@ -1,0 +1,168 @@
+﻿#
+# wikiCalc Definitions file
+#
+# Used to load format definitions for number and text format settings in UI
+# as well as overrides of WKCStrings for localization
+#
+# This file should be edited with a UTF-8 capable editor (such as Notepad on Windows systems)
+#
+
+# Format Definitions
+
+# Sample values
+#
+# sample:index:value1|'explicit text|value2|...
+
+sample:1:1234.56|-32.1|0.7
+sample:2:'<span style="font-size:xx-small;">(No&nbsp;sample)</span>
+sample:3:38828.611
+sample:4:'A&nbsp;Sample&nbsp;Cell<br>$1,234.56
+sample:5:'<a href="">http://www.domain.com</a>
+sample:6:'=A1+B4
+sample:7:'<a href="">Link</a>
+sample:8:'&nbsp;
+sample:9:2139|94301
+sample:10:21391234
+sample:11:3230800|6175551212
+sample:12:987654321
+sample:13:1234567.8
+
+# Number Format definitions
+#
+# number:displayname|category1:category2:...|sampleindex|format-text
+# UNICODE: asdf€
+
+number:Default|Numeric|1|default
+number:General|Numeric|1|General
+number:General w/ ,|Numeric|1|[,]General
+number:1234|Numeric|1|0
+number:1234.5|Numeric|1|0.0
+number:1234.56|Numeric|1|0.00
+number:1,234|Numeric|1|#,##0
+number:1,234.5|Numeric|1|#,##0.0
+number:1,234.56|Numeric|1|#,##0.00
+number:1,234.567|Numeric|1|#,##0.000
+number:1,234.5678|Numeric|1|#,##0.0000
+number:(1,234)|Numeric|1|#,##0_);(#,##0)
+number:(1,234.5)|Numeric|1|#,##0.0_);(#,##0.0)
+number:(1,234.56)|Numeric|1|#,##0.00_);(#,##0.00)
+number:12%|Numeric|1|0%
+number:12.3%|Numeric|1|0.0%
+number:12.34%|Numeric|1|0.00%
+number:(12%)|Numeric|1|#,##0%_);(#,##0%)
+number:(12.3%)|Numeric|1|#,##0.0%_);(#,##0.0%)
+number:(12.34%)|Numeric|1|#,##0.00%_);(#,##0.00%)
+number:01|Numeric|1|00
+number:001|Numeric|1|000
+number:0001|Numeric|1|0000
+number:00001|Numeric|1|00000
+
+number:$1,234|Dollars|1|$#,##0
+number:$1,234.5|Dollars|1|$#,##0.0
+number:$1,234.56|Dollars|1|$#,##0.00
+number:($1,234)|Dollars|1|$#,##0_);($#,##0)
+number:($1,234.5)|Dollars|1|$#,##0.0_);($#,##0.0)
+number:($1,234.56)|Dollars|1|$#,##0.00_);($#,##0.00)
+
+# Currency: The following category name should be the same as formatjsstrings["Currency"] in WKCStrings
+# ? in display name gets replaced by current currency
+# [?$] in format gets [$formatsym-optionallocale] when saved and in sample
+number:?1,234|Currency|1|[?$]#,##0
+number:?1,234.5|Currency|1|[?$]#,##0.0
+number:?1,234.56|Currency|1|[?$]#,##0.00
+number:(?1,234)|Currency|1|[?$]#,##0_);([?$]#,##0)
+number:(?1,234.5)|Currency|1|[?$]#,##0.0_);([?$]#,##0.0)
+number:(?1,234.56)|Currency|1|[?$]#,##0.00_);([?$]#,##0.00)
+number:1,234 ?|Currency|1|#,##0 [?$]
+number:1,234.5 ?|Currency|1|#,##0.0 [?$]
+number:1,234.56 ?|Currency|1|#,##0.00 [?$]
+# List of currencies to show (value may be symbol or symbol-locale)
+# currency:displayname|value
+currency:$|$
+currency:£ GB|£-809
+currency:€|€
+currency:EUR|EUR
+currency:GBP|GBP
+currency:USD|USD
+
+number:4-Jan-2006 1:23:45|Date-Time|3|d-mmm-yyyy h:mm:ss
+number:2006-01-04 01:23:45|Date-Time|3|yyyy-mm-dd hh:mm:ss
+number:1/4/06 1:23 PM|Date-Time|3|m/d/yy h:mm AM/PM
+number:1/4/06 13:23|Date-Time|3|m/d/yy h:mm
+number:4/1/06 1:23 PM|Date-Time|3|d/m/yy h:mm AM/PM
+number:4/1/06 13:23|Date-Time|3|d/m/yy h:mm
+number:January 4, 2006, 1:23AM|Date-Time|3|mmmm d, yyyy, h:mmAM/PM
+number:Wednesday, January 4, 2006, 1:23AM|Date-Time|3|dddd, mmmm d, yyyy, h:mmAM/PM
+
+number:4-Jan-2006|Date|3|d-mmm-yyyy
+number:1/4/06|Date|3|m/d/yy
+number:01/04/06|Date|3|mm/dd/yy
+number:01/04/2006|Date|3|mm/dd/yyyy
+number:4/1/06|Date|3|d/m/yy
+number:04/01/06|Date|3|dd/mm/yy
+number:04/01/2006|Date|3|dd/mm/yyyy
+number:2006-01-04|Date|3|yyyy-mm-dd
+number:Jan 4|Date|3|mmm d
+number:January 4, 2006|Date|3|mmmm d, yyyy
+number:Wednesday, January 4, 2006|Date|3|dddd, mmmm d, yyyy
+
+number:1:23|Time|3|h:mm
+number:1:23:45|Time|3|h:mm:ss
+number:1:23:45.6|Time|3|h:mm:ss.0
+number:01:23|Time|3|hh:mm
+number:01:23:45|Time|3|hh:mm:ss
+number:01:23:45.6|Time|3|hh:mm:ss.0
+number:1:23 AM|Time|3|h:mm AM/PM
+number:1:23:45 AM|Time|3|h:mm:ss AM/PM
+number:123:45.6|Time|3|[m]:ss.0
+number:123:45:67.8|Time|3|[h]:mm:ss.0
+
+number:'Text|Text|2|forcetext
+number:=Formula Text|Text|6|formula
+
+number:Zip|Special|9|00000
+number:Zip+4|Special|10|00000-0000
+number:Phone|Special|11|[<=9999999]###-####;(###) ###-####
+number:U.S. Soc Sec|Special|12|000-00-0000
+number:1,234,567 in thousands|Special|13|#,##0,
+number:1,234,567.8 in thousands|Special|13|#,##0,.0
+number:1,234,567 in millions|Special|13|#,##0,,
+number:1,234,567.8 in millions|Special|13|#,##0,,.0
+number:Hidden|Special|8|hidden
+
+# Custom: must be last
+number:??|Custom|2|custom
+
+# Text Format definitions
+#
+# text:displayname|sampleindex|format-text
+# sample must only have one value
+
+text:Default|4|default
+text:General|4|general
+text:Plain Text|4|text-plain
+text:HTML|4|text-html
+text:wiki|4|text-wiki
+text:URL|5|text-url
+text:Link URL|7|text-link
+text:Image URL|2|text-image
+text:=Formula Text|6|formula
+text:Hidden|8|hidden
+#text:Special|8|text-custom:raw:@r:special:@s:url-encoded:@u:
+#text:Special|8|text-custom:<a href="@u">@s</a>
+
+# WKCStrings replacements
+#
+# string:name:replacement text
+# stringblock:name
+# lines of text until line with just "."
+# .
+
+# Examples: 
+# string:separatorchar:.
+# string:decimalchar:,
+# string:currencychar:£
+# string:currencychar:USDollars
+
+# Includes:
+# include:name -- includes name.txt in this directory (only a-z, A-Z, -, _ in name)

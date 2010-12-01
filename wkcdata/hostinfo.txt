@@ -1,0 +1,3 @@
+filetype:wkchostinfo:version:1
+host:demohost:longname:Host setup by Demonstration Setup:url::loginname::loginpassword::wkcpath:
+site:demosite:longname:Site setup by Demonstration Setup:host:demohost:nameonhost:demosite:authoronhost:demoauthor:authorfromlogin:no:htmlpath:wkcdata/demohtml/:htmlurl::editurl::checked:1

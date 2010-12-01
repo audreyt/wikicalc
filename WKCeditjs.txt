@@ -1,0 +1,955 @@
+<script>
+
+// WKCeditjs.txt
+
+// (c) Copyright 2006 Software Garden, Inc.
+// All Rights Reserved.
+// Subject to Software License included with WKC.pm
+
+//
+// This routine sets up arguments and does an AJAX request for changing a cell
+//
+
+function ajaxsetcell_request(c, v, s) { // Cell, New Value, Sub to call
+
+ var reqcontents = "&ajaxsetcell="+document.f0.sitename.value+":"+document.f0.datafilename.value+":"+c+":"+encodeURIComponent(v);
+ reqcontents = reqcontents + "&loggedinusername="+document.f0.loggedinusername.value;
+ reqcontents = reqcontents + "&loggedinuserpassword="+document.f0.loggedinuserpassword.value;
+ makeRequest(reqcontents, s);
+ }
+
+//
+// Processes the string returned by ajax and updates the screen appropriately
+// (called when ajax request returns)
+//
+
+function setcell(str) {
+  parse_sheet(str);
+  update_screen();
+  update_valueedits(ecell);
+}
+
+//
+// Routine to process when valueedit input box gets the focus
+//
+
+function ve_focus() {
+ if (jsedit) { // already started editing
+  jsedit=false; // make it look like we just clicked here
+  var tmp=document.f0.valueedit.value;
+  reset_pointing();
+  document.f0.valueedit.value=tmp;
+  var node=idlist[ecell];
+  var kids=node.childNodes;
+  kids[0].innerHTML = sheetvals[ecell];
+  }
+ veedit=true;
+ document.f0.valueedit.select();
+ set_text("valuetype",jsstrings["Editing"]);
+ check_draglook();
+ return true;
+ }
+
+//
+// Routine to process when valueedittext textarea gets the focus
+//
+
+function vet_focus() {
+ if (jsedit) { // already started editing
+  jsedit=false; // make it look like we just clicked here
+  var tmp=document.f0.valueedit.value;
+  reset_pointing();
+  document.f0.valueedit.value=tmp;
+  document.f0.valueedittext.value=tmp;
+  var node=idlist[ecell];
+  var kids=node.childNodes;
+  kids[0].innerHTML = sheetvals[ecell];
+  }
+ else if (veedit) {
+  document.f0.valueedittext.value=document.f0.valueedit.value;
+  veedit=false;
+  }
+ set_editconfig(3);
+ set_text("valuetype",jsstrings["Editing"]);
+ check_draglook();
+ return true;
+ }
+
+//
+// Routine to process OK buttons
+//
+
+function process_OK() {
+ var v;
+ if (vetedit) v=document.f0.valueedittext.value;
+ else if (veedit) v=document.f0.valueedit.value;
+ else if (jsedit) v=val;
+ else v=document.f0.valueedit.value;
+ save_value(ecell,v);
+ set_editconfig(1);
+ veedit=false;
+ check_draglook();
+ return false;
+ }
+
+//
+// Routine to process each keystroke for non-input box data entry
+//
+
+var partial_expr="";
+
+function process_typed_char (c) {
+ var c1, r1, cr2, cr3;
+ if (c=="[backspace]") {
+  if (cmdedit) {
+   if (cmdedit=="/R" && (prerangeconfig==1 || prerangeconfig==2)) {
+    cancel_range();
+    return;
+    }
+   cmdedit=cmdedit.slice(0,-1);
+   set_kbdprompt(cmdedit);
+   return false;
+   }
+  val=val.slice(0,-1);
+  }
+ else if (c=="[esc]") { // cancel edit
+  if (cmdedit) {
+   if (cmdedit=="/R" && (prerangeconfig==1 || prerangeconfig==2)) {
+    cancel_range();
+    return false;
+    }
+   cmdedit=cmdedit.slice(0,-1);
+   set_kbdprompt(cmdedit);
+   return false;
+   }
+  if (highlighton) {
+   cancel_range();
+   return false;
+   }
+  jsedit=false;
+  veedit=false;
+  vetedit=false;
+  if (!pointcoord) pointcoord=ecell; // make sure update
+  reset_pointing();
+  var node=idlist[ecell];
+  var kids=node.childNodes;
+  kids[0].innerHTML = sheetvals[ecell];
+  check_draglook();
+  return false;
+  }
+ else if (c=="[del]") { // erase cell data contents
+  if (loading || cmdedit) return false;
+  if (jsedit) { // ignore if editing
+   c="";
+   }
+  else {
+   jsedit=false;
+   var node=idlist[ecell];
+   var kids=node.childNodes;
+   kids[0].innerHTML = "<span style='font-size:xx-small;'>"+jsstrings["Loading"]+"</span>";
+   val = "";
+   document.f0.valueedit.value = val;
+   document.f0.valueedittext.value = val;
+   ajaxsetcell_request(ecell, val, setcell);
+   ecell = move_cursor(ecell, ecell,true);
+   set_editcoords(ecell);
+   check_draglook();
+   return false;
+   }
+  }
+ else if (c.slice(0,2)=="[a") {
+  if (cmdedit=="/RTS") return true;
+  if (highlighton) { // doing highlight
+   c1=rcColnum(highlightpos);
+   r1=rcRownum(highlightpos);
+   if (c=="[aleft]") c1--;
+   if (c=="[aright]") c1=c1+1;
+   if (c=="[aup]") r1--;
+   if (c=="[adown]") r1=r1+1;
+   cr2 = rcColname(c1)+r1;
+   highlightpos = highlight_block(ecell, cr2, "#DDFFDD");
+   set_editcoords(ecell+":"+highlightpos);
+   return false;
+   }
+  if (jsedit) { // already editing - is this a move or pointing to a cell?
+   if (partial_expr) { // already started point operation
+    }
+   else if (("(+-*/,:!&<>=^".indexOf(val.slice(-1))>=0 && val.slice(0,1)=="=") || (val == "=")) {
+    // in formula and just after operator
+    partial_expr = val; // remember part so far
+    }
+   else { // otherwise, end of input - save
+    document.f0.valueedit.value = val;
+    document.f0.valueedittext.value = val;
+    save_value(ecell,val);
+    jsedit=false; // done editing
+    }
+   }
+  if (!pointcoord) pointcoord=ecell;
+  c1=rcColnum(pointcoord); // move in the arrow direction
+  r1=rcRownum(pointcoord);
+  if (c=="[aleft]") c1--;
+  if (c=="[aright]") c1=c1+sheetcolspan[pointcoord];
+  if (c=="[aup]") r1--;
+  if (c=="[adown]") r1=r1+sheetrowspan[pointcoord];
+  cr2 = rcColname(c1)+r1;
+  if (partial_expr) {
+   cr3 = move_cursor(pointcoord, cr2, false);
+   val=partial_expr+cr3;
+   pointcoord=cr3;
+   }
+  else {
+   cr3 = move_cursor(pointcoord, cr2, true);
+   pointcoord="";
+   ecell=cr3;
+   set_editcoords(ecell);
+   check_draglook();
+   return false;
+   }
+  }
+ else if (c=="[enter]") {
+  if (cmdedit=="/RTS") return false;
+  if (jsedit) {
+   jsedit=false;
+   save_value(ecell,val);
+   if (!pointcoord) pointcoord=ecell; // make sure update
+   reset_pointing();
+   }
+  else if (editconfig==2) {
+   set_editconfig(3);
+   document.f0.valueedittext.focus();
+   check_draglook();
+   return false;
+   }
+//Taken out for now
+//  var c1=rcColnum(ecell); // move if requested
+//  var r1=rcRownum(ecell);
+//  if (document.f0.afterenter[1].checked) c1=c1+sheetcolspan[ecell]; // right after enter
+//  if (document.f0.afterenter[2].checked) r1=r1+sheetrowspan[ecell]; // down after enter
+//  cr2 = rcColname(c1)+r1;
+//  ecell = move_cursor(ecell, cr2, true);
+//  set_editcoords(ecell);
+  check_draglook();
+  return false;
+  }
+ else if (c.slice(0,3)=="[pg") {
+  do_pageupdn(c);
+  return false;
+  }
+ else {
+  if (cmdedit=="/RTS") return true;
+  if (!jsedit) {
+   val=c;
+   }
+  else {
+   reset_pointing();
+   val = val+c;
+   }
+  }
+
+ if (loading) return false;
+
+ if (cmdedit) {
+  if (cmdedit=="/RTS") return true;
+  set_kbdprompt(cmdedit+c);
+  return false;
+  }
+
+ if (!jsedit) {
+  if (c==":") { // range
+   range_button();
+   return false;
+   }
+  if (c=="/") { // commands
+   more_button();
+   return false;
+   }
+  if (c=='"') { // multi-line edit
+   set_editconfig(3);
+   document.f0.valueedittext.focus();
+   return false;
+   }
+  jsedit = true;
+  }
+
+ var node=idlist[ecell];
+ var kids=node.childNodes;
+ var valspec=val.replace(/&/g,"&amp;");
+ valspec=valspec.replace(/</g,"&lt;");
+ kids[0].innerHTML = valspec+"|";
+
+ document.f0.valueedit.value = val;
+ document.f0.valueedittext.value = val;
+ var tc="";
+ if (val.slice(0,1)=="=") tc=jsstrings["Formula"];
+ else if (val.slice(0,1)=="'") tc=jsstrings["Text"];
+ else if (val.match(/^[a-zA-Z]/)) tc=jsstrings["Text"];
+ else if (val.match(/^[-+]?\d*(?:\.)?\d*(?:[e|E][-+]?\d+)?$/)) tc=jsstrings["Number"];
+ set_text("valuetype",tc);
+ set_text("coordtext",ecell);
+
+ check_draglook();
+
+ return false;
+ }
+
+//
+// Routine to end a point operation, if there was one
+//
+
+function reset_pointing () {
+ if (pointcoord) {
+  move_cursor(pointcoord, ecell, true);
+  }
+ pointcoord="";
+ partial_expr="";
+ }
+
+//
+// Routine to save a value v at coord c
+//
+
+function save_value(c,v) {
+ var tc="text"; // determine type
+ var sv=v;
+ if (v.slice(0,1)=="=" && v.indexOf("\n")==-1) {tc="formula"}
+ else if (v.slice(0,1)=="'") {tc="text"}
+ else if (v.length==0) tc="empty";
+ else if (v.match(/^[-+]?\d*(?:\.)?\d*(?:[e|E][-+]?\d+)?$/)) tc="value";
+ sheettype[ecell]=tc.slice(0,1); // update our values until get from server
+ sheetedit[ecell]=sv;
+ var node=idlist[ecell]; // show we are doing something
+ var kids=node.childNodes;
+ kids[0].innerHTML = "<span style='font-size:xx-small;'>"+jsstrings["Loading"]+"</span>";
+ sv=encode_field(sv); // watch out for :, etc.
+ ajaxsetcell_request(c, sv, setcell);
+ }
+
+//
+// Routine to process some keystrokes to input box
+//
+
+function process_typed_char_ve (c) {
+ if (loading) return false;
+ if (c=="[esc]") { // cancel edit
+  veedit=false;
+  move_cursor(pointcoord,ecell,true);
+  document.f0.valueedit.blur();
+  check_draglook();
+  return false;
+  }
+ else if (c=="[enter]") {
+  veedit=false;
+  val=document.f0.valueedit.value;
+  document.f0.valueedittext.value = val;
+  save_value(ecell,val);
+  document.f0.valueedit.blur();
+  check_draglook();
+  return false;
+  }
+
+ return true; // otherwise, process the character normally
+ }
+
+//
+// Routine to set value editing fields from sheetedit
+//
+
+function update_valueedits(c) {
+ var tc="";
+ var tp="";
+ var t=sheettype[c];
+ if (t=="f") {tc=jsstrings["Formula"]; tp="=";}
+ else if (t=="t") {tc=jsstrings["Text"]; tp="'";}
+ else if (t=="v") tc=jsstrings["Number"];
+ set_text("valuetype",tc);
+ set_text("coordtext",c);
+ var v=tp+sheetedit[c];
+ document.f0.valueedit.value=v;
+ document.f0.valueedittext.value=v;
+ if (v.indexOf("\n")!=-1) { // multi-line
+  set_text("valuetype",jsstrings["Multi-line"]);
+  set_editconfig(2);
+  }
+ else {
+  set_editconfig(1);
+  }
+ if (editconfig==1) {
+  if (needsrecalc=="yes") {
+   set_display(["dorecalcbutton"],"inline");
+   set_display(["recalcmsg"],"inline");
+   }
+  else {
+   set_display(["dorecalcbutton"],"none");
+   set_display(["recalcmsg"],"none");
+   }
+  }
+ else if (editconfig==4) {
+  if (sheetcolspan[c]>1 || sheetrowspan[c]>1) {
+   set_display(["mergebutton"],"none");
+   set_display(["unmergebutton"],"inline");
+   }
+  else {
+   set_display(["mergebutton"],"inline");
+   set_display(["unmergebutton"],"none");
+   }
+  }
+ }
+
+//
+// Routine to do the appropriate thing setting edit config
+//
+// config is 1: normal edit, 2: can't edit multi-line, 3: multi-line edit, 4: range, 5: / commands, 6: Table commands
+//
+
+function set_editconfig(config) {
+ cmdedit="";
+ switch (config) {
+  case 1:
+   set_display(["config3a", "config3c"], "none");
+   set_display(["mode1", "config1a", "config1c"], "block");
+   set_display(["config2a"], "none");
+   set_display(["mode4", "config45a", "config4d"], "none");
+   set_display(["mode5", "config5d"], "none");
+   set_display(["mode6", "config6d"], "none");
+   set_display(["linkpagelist"], "none");
+   vetedit=false;
+   if (showinghelp && showinghelp!="edithelptext") {
+    showinghelp=false; // turn off to turn on to our's
+    toggle_help("edithelptext");
+    }
+   break;
+  case 2:
+   set_display(["mode1", "config1c"], "block");
+   set_display(["config1a"], "none");
+   set_display(["config2a"], "block");
+   set_display(["config3a", "config3c"], "none");
+   set_display(["mode4", "config45a", "config4d"], "none");
+   set_display(["mode5", "config5d"], "none");
+   set_display(["mode6", "config6d"], "none");
+   set_display(["linkpagelist"], "none");
+   vetedit=false;
+   if (showinghelp && showinghelp!="edithelptext") {
+    showinghelp=false; // turn off to turn on to our's
+    toggle_help("edithelptext");
+    }
+   break;
+  case 3:
+   set_display(["config1a", "config1c"], "none");
+   set_display(["config2a"], "none");
+   set_display(["mode1", "config3a", "config3c"], "block");
+   set_display(["mode4", "config45a", "config4d"], "none");
+   set_display(["mode5", "config5d"], "none");
+   set_display(["mode6", "config6d"], "none");
+   set_display(["linkpagelist"], "none");
+   vetedit=true;
+   break;
+  case 4:
+   set_display(["mode1", "config1a", "config1c"], "none");
+   set_display(["config2a"], "none");
+   set_display(["config3a", "config3c"], "none");
+   set_display(["mode4", "config45a", "config4d"], "block");
+   set_display(["mode5", "config5d"], "none");
+   set_display(["mode6", "config6d"], "none");
+   set_display(["linkpagelist"], "none");
+   editconfig=4;
+   set_kbdprompt("/R");
+   if (sheetcolspan[ecell]>1 || sheetrowspan[ecell]>1) {
+    set_display(["mergebutton"],"none");
+    set_display(["unmergebutton"],"inline");
+    }
+   else {
+    set_display(["mergebutton"],"inline");
+    set_display(["unmergebutton"],"none");
+    }
+   if (showinghelp) {
+    showinghelp=false; // turn off to turn on to our's
+    toggle_help("rangehelptext");
+    }
+   break;
+  case 5:
+   set_display(["mode1", "config1a", "config1c"], "none");
+   set_display(["config2a"], "none");
+   set_display(["config3a", "config3c"], "none");
+   set_display(["mode4", "config4d"], "none");
+   set_display(["mode5", "config45a", "config5d"], "block");
+   set_display(["mode6", "config6d"], "none");
+   set_display(["linkpagelist"], "none");
+   if (!cliprange) {
+    document.f0["okeditrange:paste"][0].disabled=true;
+    document.f0["okeditrange:paste"][1].disabled=true;
+    document.f0["okeditrange:paste"][2].disabled=true;
+    }
+   if (document.f0.recalc.value=="off") {
+    set_display(["recalcmanualbutton"], "none");
+    set_display(["recalcautobutton"], "inline");
+    }
+   else {
+    set_display(["recalcmanualbutton"], "inline");
+    set_display(["recalcautobutton"], "none");
+    }
+   if (showinghelp) {
+    showinghelp=false; // turn off to turn on to our's
+    toggle_help("editmorehelptext");
+    }
+   editconfig=5;
+   set_kbdprompt("/");
+   break;
+  case 6:
+   set_display(["mode1", "config1a", "config1c"], "none");
+   set_display(["config2a"], "none");
+   set_display(["config3a", "config3c"], "none");
+   set_display(["mode4", "config4d"], "none");
+   set_display(["mode5", "config5d"], "none");
+   set_display(["mode6", "config45a", "config6d"], "block");
+   set_display(["linkpagelist"], "none");
+   editconfig=6;
+   set_kbdprompt("/RT");
+   break;
+   }
+ editconfig=config;
+ }
+
+//
+// Routine to set the / command keyboard prompt line and remembered value
+//
+
+var cliprange="";
+
+function set_kbdprompt(which) {
+ which=which.toUpperCase().replace(/[^\/A-Z:]/,"");
+ switch (which) {
+  case "":
+   cmdedit="";
+   set_editconfig(1);
+   return;
+  case "/":
+   if (editconfig!=5) {
+    set_editconfig(5);
+    end_highlight();
+    cmdedit="/";
+    return;
+    }
+   set_text("kbdprompt", jsstrings["slashplain"]);
+   break;
+  case "/R":
+  case "/:":
+   if (editconfig==5 || editconfig==6) {
+      range_button();
+      return;
+      }
+   set_text("kbdprompt", jsstrings["slashR"]);
+   break;
+  case "/RM":
+   editrangecmd("merge");break;
+  case "/RU":
+   editrangecmd("unmerge");break;
+  case "/RC":
+   editrangecmd("copy");break;
+  case "/RX":
+   editrangecmd("cut");break;
+  case "/RE":
+   editrangecmd("erase");break;
+  case "/RF":
+   set_text("kbdprompt", jsstrings["slashRF"]);
+   break;
+  case "/RFR":
+   editrangecmd("fillright");break;
+  case "/RFD":
+   editrangecmd("filldown");break;
+  case "/RD":
+   set_text("kbdprompt", jsstrings["slashRD"]);
+   break;
+  case "/RDR":
+   editrangecmd("deleterow");break;
+  case "/RDC":
+   editrangecmd("deletecol");break;
+  case "/RT":
+   if (editconfig==4) {
+      table_button();
+      return;
+      }
+   if (showinghelp && showinghelp!="edittablehelptext") {
+    showinghelp=false; // turn off to turn on to our's
+    toggle_help("edittablehelptext");
+    }
+   set_text("kbdprompt", jsstrings["slashRT"]);
+   set_display(["config6d1"], "block");
+   set_display(["config6d2"], "none");
+   break;
+  case "/RTS":
+   set_text("kbdprompt", jsstrings["slashRTS"]);
+   set_display(["config6d1"], "none");
+   set_display(["config6d2"], "block");
+   update_sort_select();
+   if (showinghelp) {
+    showinghelp=false; // turn off to turn on to our's
+    toggle_help("edittablesorthelptext");
+    }
+   break;
+  case "/P":
+   if (cliprange) {
+    set_text("kbdprompt", jsstrings["slashP1"]+cliprange+jsstrings["slashP2"]);
+    }
+   else {
+    set_text("kbdprompt", jsstrings["slashP3"]);
+    }
+   break;
+  case "/PA":
+   morecmd("paste");break;
+  case "/PC":
+   set_more("formulas");
+   document.f0.okeditrange.value="paste";
+   document.f0.submit();
+   break;
+  case "/PF":
+   set_more("formats");
+   document.f0.okeditrange.value="paste";
+   document.f0.submit();
+   break;
+  case "/PE":
+   morecmd("clearclipboard");break;
+  case "/I":
+   set_text("kbdprompt", jsstrings["slashI"]);
+   break;
+  case "/IR":
+   morecmd("insertrow");break;
+  case "/IC":
+   morecmd("insertcol");break;
+  case "/D":
+   set_text("kbdprompt", jsstrings["slashD"]);
+   break;
+  case "/DR":
+   morecmd("deleterow");break;
+  case "/DC":
+   morecmd("deletecol");break;
+  case "/G":
+   set_text("kbdprompt", jsstrings["slashG"]);
+   break;
+  case "/GR":
+   set_text("kbdprompt", jsstrings["slashGR"]);
+   break;
+  case "/GRA":
+   morecmd("recalcauto");break;
+  case "/GRM":
+   morecmd("recalcmanual");break;
+  case "/GRN":
+   set_more("all");
+   document.f0.dorecalc.value=1;
+   document.f0.submit();
+   break;
+  case "/F":
+   set_more("all");
+   document.f0.newtab.value=jsstrings["Format"];
+   document.f0.submit();
+   break;
+  default:
+   set_text("kbdprompt", ' &nbsp; <span style="font-weight:bold;color:red;">'+jsstrings["unknowncmd1"]+' "'+which+'" - '+jsstrings["unknowncmd2"]);
+  }
+ cmdedit=which;
+}
+
+//
+// Processes the string returned from the server from ajaxsetcell
+//
+
+var sheetattribs={}; // unparsed cell attributes not otherwise stored
+
+function parse_sheet(str) {
+ sheetupdated = {}; // remember which we got this time
+ sheeterror=""; // start with no errors
+ var cells = str.split("\n");
+ for (var i=0;i<cells.length;i++) { // each line is coord:type:displayvalue:editvalue:align:colspan:rowspan:skip:csss
+   var parts = cells[i].split(":",9);
+   if (!parts[0]) continue; // blank line
+   var cr = parts[0];
+   if (cr=="error") { // information about errors
+    sheeterror=decode_field(parts[1],"");
+    continue;
+    }
+   else if (cr=="needsrecalc") {
+    needsrecalc=parts[1];
+    continue;
+    }
+   else if (cr=="footer") {
+    set_text("footertimemsg",cells[i].substr(7));
+    continue;
+    }
+   var col=rcColnum(cr);
+   var row=rcRownum(cr);
+   if (col>sheetlastcol || row>sheetlastrow) continue; // don't extend
+   sheettype[cr]=parts[1];
+   var value = parts[2];
+   sheetvals[cr] = decode_field(value,"&nbsp;");
+   value = parts[3];
+   if (!value) value=parts[2]; // default is same as display
+   sheetedit[cr] = decode_field(value,"");
+   sheetalign[cr] = parts[4];
+   sheetcolspan[cr] = parts[5]-0;//force to number
+   sheetrowspan[cr] = parts[6]-0;
+   value = parts[7];
+   sheetattribs[cr]="|"+parts[8];
+   if (!value) value=cr; // default is this cell
+   sheetskip[cr] = value;
+   sheetupdated[cr]=1;
+   }
+ return;
+ }
+
+//
+// Updates the cells that were just parsed by parse_sheet
+//
+
+function update_screen() {
+ for (var coord in sheetupdated) {
+  if (sheetskip[coord]!=coord) continue; // skip cells not displayed
+  var node=idlist[coord]; // get table cell
+  if (node) { // sometimes server updates empty cells past the displayed area - ignore
+   var kids=node.childNodes; // get div within cell
+   if (kids) kids[0].innerHTML=sheetvals[coord];
+   kids[0].style.textAlign=sheetalign[coord];
+   if (coord==ecell) { // update formula bar, too
+    update_valueedits(coord);
+    }
+   }
+  }
+ check_error();
+ }
+
+//
+// Routine to handle clicks on a cell
+//
+
+function rc0(cr1) {
+ if (highlighton) { // doing highlight
+  if (cmdedit=="/RTS") return;
+  highlightpos = highlight_block(ecell, cr1, "#DDFFDD");
+  set_editcoords(ecell+":"+highlightpos);
+  return;
+  }
+ if (jsedit) { // already editing - is this a move or pointing to a cell?
+  if (partial_expr) { // already started point operation
+   }
+  else if (("(+-*/,:!&<>=^".indexOf(val.slice(-1))>=0 && val.slice(0,1)=="=") || (val == "=")) {
+   // in formula and just after operator
+   partial_expr = val; // remember part so far
+   }
+  else { // otherwise, end of input - save
+   document.f0.valueedit.value = val;
+   document.f0.valueedittext.value = val;
+   save_value(ecell,val);
+   jsedit=false; // done editing
+   }
+  }
+ if (veedit || vetedit) { // if doing editing in an input field, this completes the input
+  process_OK();
+  }
+ if (cr1==ecell && editconfig==2) { // clicking on an already selected multi-line cell
+   set_editconfig(3);
+   document.f0.valueedittext.focus();
+   return;
+   }
+ if (!pointcoord) pointcoord=ecell;
+ var cr2;
+ if (partial_expr) {
+  cr2 = move_cursor(pointcoord, cr1, false);
+  val=partial_expr+cr2;
+  pointcoord=cr2;
+  var node=idlist[ecell];
+  var kids=node.childNodes;
+  kids[0].innerHTML = val+"|";
+  document.f0.valueedit.value = val;
+  document.f0.valueedittext.value = val;
+  return false;
+  }
+ else {
+  cr2 = move_cursor(pointcoord, cr1, true);
+  pointcoord="";
+  ecell=cr2;
+  set_editcoords(ecell);
+  return false;
+  }
+ }
+
+//
+// more_button
+//
+
+function more_button() {
+ set_editconfig(5);
+}
+
+function cancel_more() {
+ set_editconfig(1);
+}
+
+function set_more(epval) {
+ document.f0.editcoords.value=ecell;
+ if (epval=="all") document.f0.editparts[0].checked=true;
+ if (epval=="formulas") document.f0.editparts[1].checked=true;
+ if (epval=="formats") document.f0.editparts[2].checked=true;
+}
+
+function morecmd(cmd) {
+ set_more("all");
+ document.f0.okeditrange.value=cmd;
+ document.f0.submit();
+}
+
+//
+// range_button
+//
+
+var prerangeconfig;
+
+function range_button() {
+ prerangeconfig = editconfig;
+ set_editconfig(4);
+ start_highlight();
+}
+
+function cancel_range() {
+ set_editconfig(prerangeconfig);
+ prerangeconfig=0;
+ end_highlight();
+}
+
+function set_range(epval) {
+ document.f0.editcoords.value=ecell+":"+highlightpos;
+ if (epval=="all") document.f0.editparts[0].checked=true;
+ if (epval=="formulas") document.f0.editparts[1].checked=true;
+ if (epval=="formats") document.f0.editparts[2].checked=true;
+}
+
+//
+// table_button
+//
+
+var pretablepre;
+
+function table_button() {
+ pretablepre = prerangeconfig
+ set_editconfig(6);
+}
+
+function cancel_table() {
+ set_editconfig(4);
+ prerangeconfig = pretablepre
+}
+
+//
+// Initialize column dropdowns for sort
+//
+
+function update_sort_select() {
+ var c1=rcColnum(ecell) || 1;
+ var c2=rcColnum(highlightpos) || c1;
+ document.f0.sort1.options.length=0; // reset the lists
+ document.f0.sort2.options.length=0;
+ document.f0.sort3.options.length=0;
+ var ci;
+ var nonestr=jsstrings["nonestr"];
+ var colstr=jsstrings["colstr"];
+ document.f0.sort2.options[0]=new Option(nonestr, "none", true);
+ document.f0.sort3.options[0]=new Option(nonestr, "none", true);
+ for (var i=c1; i<=c2; i++) {
+  ci = rcColname(i);
+  document.f0.sort1.options[document.f0.sort1.options.length]=new Option(colstr+ci, ci, i==c1);
+  document.f0.sort2.options[document.f0.sort2.options.length]=new Option(colstr+ci, ci);
+  document.f0.sort3.options[document.f0.sort3.options.length]=new Option(colstr+ci, ci);
+  }
+ document.f0.sortorder1[0].checked=true;
+ document.f0.sortorder2[0].checked=true;
+ document.f0.sortorder3[0].checked=true;
+ document.f0.sort1.focus();
+
+ return;
+}
+
+//
+// Returns to the server to execute an editrange command
+//
+
+function editrangecmd(cmd) {
+ set_range("all");
+ document.f0.okeditrange.value=cmd;
+ document.f0.submit();
+}
+
+//
+// Link to page stuff: Get list of current pages on this site
+//
+
+function update_page_list() {
+ document.getElementById("linkpagelist").style.display='block';
+ document.f0.pagelist.options.length=0; // empty list
+ document.f0.pagelist.options[0]=new Option(jsstrings["Retrieving"],"");
+ var reqcontents = "&ajaxgetpagelist="+document.f0.sitename.value;
+ reqcontents = reqcontents + "&loggedinusername="+document.f0.loggedinusername.value;
+ reqcontents = reqcontents + "&loggedinuserpassword="+document.f0.loggedinuserpassword.value;
+ makeRequest(reqcontents, set_select);
+}
+
+//
+// Routine to process the ajax call returned data
+//
+
+var pagenames=[];
+var pagelnames=[];
+
+function set_select(str) {
+ document.f0.pagelist.options.length=0; // empty list
+ var namelist=str.split(":");
+ if (namelist.length && namelist[0]=="error") {
+  alert(namelist[1]);
+  return;
+  }
+ var ln;
+ var npgs = 0;
+ pagenames=[]; // reset
+ pagelnames=[];
+
+ for (var i=1; i<namelist.length; i=i+3) { // they come in sorted order
+  if (npgs && pagenames[npgs-1]==namelist[i]) continue; // already have this one
+  pagenames[npgs] = namelist[i];
+  pagelnames[npgs] = decode_field(namelist[i+1],"");
+  npgs++;
+  }
+
+ for (var i=0; i<npgs; i++) {
+  var pgstr = pagenames[i];
+  if (pagelnames[i]) pgstr += ": " + pagelnames[i];
+  document.f0.pagelist.options[document.f0.pagelist.options.length]=new Option(pgstr, i);
+  if (i==0) {
+   document.f0.pagelist.options[document.f0.pagelist.options.length-1].selected=true;
+   }
+  }
+ if (document.f0.pagelist.options.length==0) { // none - unlikely
+  document.f0.pagelist.options[0]=new Option(jsstrings["NoPages"], "");
+  }
+ document.f0.pagelist.focus();
+}
+
+//
+// Choose page (or just dismiss if dochoose is false)
+//
+
+function choose_pagelink(dochoose) {
+ var pnum = document.f0.pagelist.selectedIndex;
+ var pstr = "[page:" + pagenames[pnum] + " ";
+ if (pagelnames[pnum]) {
+  pstr += pagelnames[pnum];
+  }
+ else {
+  pstr += pagenames[pnum];
+  }
+ pstr += "]";
+ if (dochoose) document.f0.valueedittext.value += pstr;
+ document.getElementById('linkpagelist').style.display='none';
+ document.f0.valueedittext.focus();
+ return;
+}
+
+
+</script>
+

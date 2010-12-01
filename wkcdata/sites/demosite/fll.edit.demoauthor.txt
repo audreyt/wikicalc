@@ -1,0 +1,25 @@
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=wkc-boundary
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.1
+fullname:bar
+templatetext:
+templatefile:
+lastmodified:Fri Oct  1 01\c10\c41 2010
+lastauthor:
+basefiledt:
+backupfiledt:
+reverted:
+editcomments:
+publishhtml:
+publishsource:
+publishjs:
+viewwithoutlogin:
+edit:# New page from default template
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+cell:A1:
+--wkc-boundary--

@@ -1,0 +1,17 @@
+{{templatedescriptionline}}First column content-dependent width
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=wkc-boundary
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+fullname:First column content-dependent width
+templatetext:
+templatefile:
+lastmodified:Mon Jan  9 18\c39\c22 2006
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+cell:A1:t:= This column will expand to hold the text in it. =\nThis is especially useful for long stretches of text that will be wrapped in a nice HTML template. With it you can create pages similar to those that you would with a traditional wiki.\n\n''To remove this sample text, just go to the Edit tab, click on the cell, and type in new content or press the Delete key.''\n\nThe "Help" button will show you the wiki-style markup that you can use. For example, here are some bullet points\c\n* You can have lists\n* You can have '''bold''' and ''italics'' in the midst of other text\n* You can have [popup\chttp\c//www.softwaregarden.com links\cpopup] that pop up another page when clicked\nThis type of page may expand to the full width allowed by the browser which can often be as wide as the screen. It is often more readable when published using a fixed width HTML template. There are fixed width shared HTML templates that ship with wikiCalc which you can access using the Tools / Page Properties command.
+col:A:w:auto
+sheet:r:1:c:1
+--wkc-boundary--

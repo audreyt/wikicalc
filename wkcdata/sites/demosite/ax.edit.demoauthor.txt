@@ -1,0 +1,48 @@
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=wkc-boundary
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.1
+fullname:axax
+templatetext:
+templatefile:
+lastmodified:Fri Oct  1 01\c09\c48 2010
+lastauthor:demoauthor
+basefiledt:
+backupfiledt:
+reverted:
+editcomments:
+publishhtml:
+publishsource:
+publishjs:
+viewwithoutlogin:
+edit:# New page from default template
+edit:set sheet lastcol 2
+edit:set sheet lastcol 3
+edit:set sheet lastcol 4
+edit:set sheet lastrow 2
+edit:set sheet lastrow 3
+edit:set sheet lastrow 4
+edit:set sheet lastcol 5
+edit:set sheet lastcol 6
+edit:set sheet lastcol 7
+edit:set sheet lastcol 8
+edit:set sheet lastcol 9
+edit:set sheet lastcol 10
+edit:set sheet lastcol 11
+edit:set sheet lastcol 12
+edit:set sheet lastcol 13
+edit:set sheet lastrow 5
+edit:set sheet lastrow 6
+edit:set C6 text tw asa
+edit:set B2 text tw m
+edit:set A1 empty 
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.2
+cell:B2:t:m
+cell:C6:t:asa
+sheet:r:6:c:13
+--wkc-boundary--

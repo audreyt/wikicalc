@@ -1,0 +1,846 @@
+This is the WKCtextdata.txt file
+
+(c) Copyright 2006 Software Garden, Inc.
+All Rights Reserved.
+See License in WKC.pm.
+
+The format is as follows:
+
+  *** WKCtexdataname: textname1 ***
+  Lines of text to be returned...
+  *** WKCtexdataname: textname2 ***
+  Lines of text to be returned...
+
+textname is alphanumerics plus -
+
+*** WKCtextdataname: edithelptext ***
+<b>CELL EDITING HELP</b>
+<div style="text-align:right;margin-bottom:6px;">
+(See also: <a href="" onclick="ajaxgetnamedtext_request('functionhelptext', 'helpbody');return false;">Function Help</a>)
+</div>
+To enter a new value in a cell, type on the keyboard.
+For more extensive editing click in the typing area above.
+If the cell contents starts with equal (=) it will be considered to be a formula,
+with apostrophe (') it will be text, all numeric will be a numeric value,
+and text otherwise for most other forms.
+Numbers that start with "$" are treated as currency, those ending with "%" are scaled by 1/100
+and treated as percent, and "number/number/number" is treated as a date.<br><br>
+After typing, <b>pressing Enter</b> or clicking the OK button will save the new value and retrieve updated values from the server.
+The <b>Escape</b> key cancels typing, and <b>backspace</b> should work as expected.
+The <b>Delete</b> key by itself erases the contents of the cell.
+<br><br>
+There are various commands available (insert row, etc.), described below.
+<br><br>
+Cells with text preserve explicit line breaks and have other special formatting rules (see below).
+<br><br>
+<b>Clicking on a cell</b> in the spreadsheet or <b>pressing an arrow key</b> will move to that cell saving any changes made to the current cell.
+When you are typing in a formula, pointing to another cell with the arrow keys or by clicking
+will add that cell's address to the formula if it follows an operator (+-*/%, etc.).<br><br>
+Formulas may use +, -, *, /, % (scale by .01), ^ (exponentiation), and parenthesis,
+and the comparison operators &lt;, &lt=, =, &gt;=, &gt;, and <> (not equal).
+Cell addresses are in the form of A1 and B22.
+Cell addresses may have an optional sheet name, for example western!B40 to access the value of cell
+B40 on the most recently published copy of page "western".
+(To force a recalculation to get the latest values, use the /Global Recalculation Now command.)
+Cell addresses may include $'s (e.g., $A$15) to control offsetting in copies.
+Within formulas extra spaces around operators are ignored.
+Within formulas you can have formula text values typed within quotes (e.g., "this is text").
+Within a formula text value double quotes are replaced by single quotes.
+<br><br>
+<b>FUNCTIONS</b><br><br>
+For a list of supported functions that may be used in formulas, see the
+<a href="" onclick="ajaxgetnamedtext_request('functionhelptext', 'helpbody');return false;"><b>Function Help</b></a>.
+<br><br>
+<b>SCROLLING</b><br><br>
+Use the special slider control on the right side of the sheet to scroll rows without moving the top of the screen.
+The PageUp and PageDown keys also affect scrolling.
+During certain operations scrolling is disabled.
+When that happens, Esc can often be used to get back to a state where scrolling is allowed.
+<br><br>
+<b>TEXT FORMATTING</b><br><br>
+To have a larger area for typing and to allow for multiple lines
+press the "Multi-line edit" button.
+<br><br>
+Text in a cell is automatically formatted.
+Explicit line breaks (pressing Enter) are preserved.
+Text will be wrapped to fit cells depending upon column width settings
+and merged cells.
+Through explicit formats set with the Format tab text may be treated as plain text,
+as wiki text, or as HTML text.
+<br><br>
+The following sequences have special effects in text that is treated as wiki text (the default format):
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>''text''<br>[i:text:i]<dd>Italic text (note the '' sequences are two apostrophes, not a quote).
+If the ' is the first character of the cell it is treated as the "make this text" indicator,
+not the beginning of italic or bold.
+<dt>'''text'''<br>[b:text:b]<dd>Bold text (note the ''' sequences are three apostrophes)
+<dt>{{amp}}, {{lt}}, {{gt}}, {{quot}}<br>{{lbracket}}, {{rbracket}}, {{lbrace}}<dd>&amp;,  &lt;,  &gt;, ", [, ], {
+<dt>[quote:text:quote]<dd>Indented text
+<dt>[http://rest-of-url text]<dd>Text linking to the URL.
+Note the space separating the URL from the text.
+<dt>[link:url text:link]<dd>Text linking to URL (url includes http:, mailto:, etc.)
+<dt>[popup:url text:popup]<dd>Text linking to URL with target="_blank" to popup window
+<dt>[image:url text:image]<dd>Image shown in-line with ALT text
+<dt>[page:pagename text]<dd>Link to a page on this site.
+Pagename is the short name of the page, with no ".html".
+If "text" is missing the pagename will be used as the link text.
+In multi-line editing the "Link to page" button lets you choose a page
+from a list and automatically create this type of link and add it to the end of the text.
+<dt>[cell:cell-coordinate]<dd>Inserts the characters that display in the cell formatted as specified in the cell,
+for example [cell:B7].
+</dl>
+If a cell has more than one line (separated by pressing Enter in multi-line editing),
+then lines starting with the following characters are treated as listed:
+<dl>
+<dt>=<dd>Heading level. May have 1-5 ='s and should have an equal number at the end of the line.
+One or more spaces should follow the first set of ='s and precede the ending ones.
+<dt>:<dd>Indent. May have 1-5 :'s to indent further and further.
+<dt>*<dd>Bulleted list item. May have 1-5 *'s to have sublists.
+<dt>#<dd>Numbered list item. May have 1-5 #'s to have sublists.
+<dt>;<dd>Definition list item. The "term" follows it, followed by a ":" and then the definition.
+May have 1-5 ;'s to have sublists.
+</dl>
+</div>
+<br>
+<b>COMMANDS</b><br><br>
+There are some commands available while editing.
+They may be accessed by clicking on buttons or by typing.
+<br><br>
+You can enter <b>multi-line editing</b> by either pressing the Multi-Line edit button
+or by typing a quote (").
+You can also start multi-line editing by clicking an additional time on a cell
+that already contains multi-line content.
+<br><br>
+You can enter the <b>Range</b> commands by either pressing the Range button
+or by typing a colon (:).
+The Range commands have their own help text.
+Range commands include: select a range of cells, Merge cells, Copy/Cut, Fill Right/Down, and Table (which has Sort).
+<br><br>
+You can enter <b>other commands</b> by pressing the More button or by typing a slash (/).
+The More commands have their own help text.
+The More commands include: Pasting, Inserting/Deleting rows and columns, and controlling automatic recalculation.
+<br><br>
+<b>EXTENDING THE SHEET</b>
+<br><br>
+Rows and columns that include all cells with data are displayed.
+In addition 10 more rows are added at the bottom to make extending the sheet easier.
+Those rows are not rendered when Previewing nor when Publishing.
+<br><br>
+There are buttons for Add Row and Add Column below the sheet display.
+They add additional rows or columns to the bottom or right that will always be displayed.
+You can also use the "More" commands to insert rows or columns in the middle of the sheet.
+<br><br>
+
+*** WKCtextdataname: rangehelptext ***
+<b>RANGE COMMANDS HELP</b><br><br>
+Ranges are a rectangular group of cells that you can apply commands to.
+Ranges extend from the initial upper-left cell to the right and down to a bottom-right cell.
+They may consist of cells in a single row, single column, or even a single cell.
+The range is highlighted with a background color (that temporarily overrides the current
+background color of a cell).
+<br><br>
+You can change the extent of a range by pressing the arrow keys or by clicking on a cell.
+You can apply a command to the range by then clicking on a command button or typing an appropriate character.
+The commands are as follows:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Merge Cells, Unmerge<dd>When cells are merged the contents of the upper-left cell of the range
+will cover the other cells which will not be displayed.
+This is the easiest way to have <b>wide lines of text across multiple columns</b>.
+It can also be used to have a vertical narrow column that spans multiple lines.
+Unmerging a merged cell sets things back to normal.
+<dt>Copy<dd>Copies from the selected cells to the sheet's clipboard.
+The contents of the cells and/or the formatting information is copied, as set by the radio buttons on the right.
+Each page has its own clipboard.
+Use the Load From Sheet command on the Tools tab to load the clipboard of this page from the
+clipboard of another page.
+<dt>X-Cut<dd>Copies to the clipboard like Copy, but then deletes what was copied.
+<dt>Erase<dd>Deletes the contents and/or formatting information in the cells, as set by the radio buttons on the right.
+<dt>Fill Right<dd>Copies the contents/formatting of the cells in the left-most column into the other columns in the same row.
+Cell references in formulas are modified as appropriate.
+<dt>Fill Down<dd>Copies the contents/formatting of the cells in the top-most row into the other rows in the same column.
+Cell references in formulas are modified as appropriate.
+<dt>Table<dd>There is only one table command: <b>Sort</b>. It is used to sort the rows in the range
+based upon the values in specified columns.
+</dl>
+</div>
+There are <b>keyboard short-cuts</b> for the commands.
+They are listed on a prompt line above the buttons (e.g., C for copy, X for cut). Case is ignored.
+There are additional commands there for deleting all of the rows or columns in the range.
+<br><br>
+
+*** WKCtextdataname: edittablehelptext ***
+<b>TABLE COMMANDS HELP</b><br><br>
+There is only one table command:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Sort<dd>Sort is used to sort the rows in the range based upon the values in specified columns.
+Make sure that the entire range of cells you wish to sort are selected before choosing the Sort command.
+</dl>
+</div>
+
+*** WKCtextdataname: edittablesorthelptext ***
+<b>SORT COMMAND HELP</b><br><br>
+The Sort command sorts the contents of the rows in the selected range based upon the values in specified columns.
+Use the Major, Minor, and Last Sort settings to choose which columns to base the sort upon.
+Only the Major Sort is required. The other columns are only checked when the Major Sort values are equal.
+Use the Ascending and Descending radio buttons to indicate the direction of the sort for the specified column.
+<br><br>
+The sort orders considers numeric values less than text and text less than error values.
+Blank cells go last no matter which way sort is done.
+Text is sorted as if all alphabetic characters are lower case.
+Currently only the 96 ASCII characters are sorted correctly.
+<br><br>
+
+*** WKCtextdataname: editmorehelptext ***
+<b>EDIT "MORE COMMANDS" HELP</b><br><br>
+The commands available are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Range<dd>Switch to the Range commands.
+This is an alternative way to get to the range commands.
+It works especially well from the keyboard where you can just type "/R".
+You can also type a colon (:) here to switch to the Range commands.
+<dt>Paste All<dd>Copies the data from the cells on the sheet's clipboard to the
+cells starting with the cursor position as the upper-left.
+Each page has its own clipboard.
+The contents of the cells and the formatting information are both copied overwriting what was in each cell.
+This command is not available if the clipboard is empty.
+<dt>Paste Contents<dd>The same as the Paste All command but only overwrites the contents of the cells, not the formatting.
+<dt>Paste Formats<dd>The same as the Paste All command but only overwrites the formatting of the cells, not the contents.
+Use this to <b>apply the formatting of one cell to other cells</b> by copying one or more cells and then doing Paste Formats.
+<dt>Recalc Manual, Recalc Auto<dd>Turns on and off automatic recalculation.
+With sheets that have many calculations, or that use functions that take a long time to access data from other websites,
+turning off recalculation can save time during data entry.
+When changes have been made to the sheet and recalculation is turned off an indication will
+appear on the regular Edit display saying that recalculation may be needed and a "Recalc Once" button will appear.
+You can force a recalculation using the keyboard with the "/GRN" command (Global Recalculation Now).
+<dt>Insert Row, Insert Column<dd>Adds a new row or column before the one with the cursor.
+Cell references in formulas are modified as appropriate.
+Formats are copied from the row/column before the one that is inserted (if it exists).
+<dt>Delete Row, Delete Column<dd>Deletes the row or column with the cursor.
+Cell references in formulas are modified as appropriate.
+</dl>
+</div>
+There are <b>keyboard short-cuts</b> for the commands.
+They are listed on a prompt line above the buttons (e.g., R for range, I followed by R for insert row). Case is ignored.
+There is an additional command for deleting the contents of the clipboard (/PE - it saves space in the data file).
+The Recalculation commands are on the /Global sub-menu (/GRM and /GRA for manual and automatic,
+and /GRN to force a recalculation right now).
+As a keyboard shortcut, the /F command switches to the Format tab.
+<br><br>
+
+*** WKCtextdataname: formathelptext ***
+<b>FORMATTING HELP</b><br><br>
+The Format tab lets you set the format of one or more cells.
+The format is made up of many independent settings.
+You choose which setting you want to change by clicking the appropriate button in the top row.
+The current values for the various attributes will be shown.
+Make the changes that you want and then <b>press the Save Settings button</b>.
+If you do not save the settings they will be ignored.<br><br>
+You can change the cell you are working with by using the arrow keys or by clicking on a cell.<br><br>
+To apply the setting to a range of cells click the Range button (or press the ":" key) and then indicate
+the bottom-rightmost cell using the arrow keys or by clicking.
+Pressing the Escape key returns to setting just one cell.
+Only the current settings of the first cell are shown in the attributes.<br><br>
+<b>NUMBERS</b><br><br>
+The numbers attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Alignment<dd>Numbers have separate alignment settings from plain text by default.
+You can set the alignment for all types of content explicitly.
+The setting applies to both numbers and text.
+"Default" uses the All Cells number alignment default.
+<dt>Format<dd>Sets the way numbers are displayed, controlling precision, thousands separators, etc.
+A sample of different values formatted appropriately is shown when you make a selection.
+Calculation is always done at full precision.
+The built-in formats are grouped by type.
+The Currency type has an additional setting to choose the currency symbol from a list.
+The Special type includes "hidden" to hide the contents of a cell when published.
+Custom formats may be set in a manner similar to many other spreadsheet programs
+using the Custom format type.
+(Note: In this program, day "1" is December 31, 1899 and the year 1900 is not a leap year.
+Some programs use January 1, 1900, as day "1" and treat 1900 as a leap year.
+In both cases, though, dates on or after March 1, 1900, are the same.)
+<dt>All Cells<dd>This lets you edit the default values used for all cells that have no
+setting or have the Default chosen.
+If the default is left to a default value, then a common built-in setting is used, usually the General format.
+</dl>
+</div>
+The General format for numbers is determined by the type of value being displayed.
+Some numeric values are a special sub-type of number, such as date, date/time, etc.
+The General format looks to that sub-type as a hint for how a value should be displayed.
+You can override General by setting an explicit format for a cell.
+<br><br>
+Most formula operations look to the types and sub-types of values to determine the resulting type and sub-type.
+For example, adding a plain number to a date results in a date,
+while taking the trigonometric sine value of a date results in a number.
+<br><br>
+<b>TEXT</b><br><br>
+The text attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Alignment<dd>Text cells have separate alignment settings from numbers by default.
+You can set the alignment for all types of content explicitly.
+The setting applies to both numbers and text.
+"Default" uses the All Cells text alignment.
+<dt>Format<dd>Sets the way text is displayed, be it plain text, wiki text, HTML, or other formats.
+A sample of different values formatted appropriately is shown for some formats when you make a selection.
+<dt>All Cells<dd>This lets you edit the default values used for all cells that have no
+setting or have the Default chosen.
+If the default is left to a default value, then a common built-in setting is used, usually the General format.
+</dl>
+</div>
+The General format for text is determined by the type of value being displayed.
+Depending upon the source of the text value, it may have a sub-type of text, such as HTML.
+Text appearing by itself in a cell, not as the result of a formula, is treated as wiki text.
+Most other text, such as text in a "quoted string" in a formula, is treated as plain text.
+Some functions, such as wkcHTML, return text with a particular sub-type.
+The General format looks to the sub-type as a hint for how a value should be displayed.
+You can override General by setting an explicit format for a cell.
+<br><br>
+<b>FONTS</b><br><br>
+The font attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Font Family<dd>This lets you choose the font family used for the cell
+no matter what the content.
+"Default" uses the All Cells font family.
+<dt>Font Size<dd>This lets you specify the size for characters.
+The first set uses browser relative sizes and the second set lets you set point size explicitly.
+"Default" uses the All Cells font size.
+<dt>Font Weight and Style<dd>Bold and/or italic, or the default.
+<dt>All Cells<dd>This lets you edit the default values used for all cells that have no
+setting or have the Default chosen.
+If the default is left to a default value, then a common built-in setting is used.
+</dl>
+</div>
+<b>COLORS</b><br><br>
+The color attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Text Color<dd>This is the color of the characters.
+Clicking on the color square pops up a color chooser.
+You can choose one of the colors it proposes or click in the text box and type a hexadecimal RGB color value
+(e.g., 000000 is black, FFFFFF is white, and 9999FF is light blue).
+Clicking on the "Default" square uses the All Cells default value.
+<dt>Background Color<dd>This works just like the Text Color but for the background of the cell.
+<dt>All Cells<dd>This lets you edit the default values used for all cells that have no
+setting or have the Default chosen.
+If the default is left to a default value, then a common built-in setting is used.
+</dl>
+</div>
+<b>BORDERS</b><br><br>
+The border attributes can be set for all four sides of the cell or for each side individually.
+In addition, if a range of cells has been selected you can choose to set just the edges
+that bound the range of cells, not the edges between each cell.
+There are no defaults for borders.
+The border attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Visibility<dd>If checked the specified border(s) will be shown.
+If unchecked they will not be shown.
+<dt>Thickness<dd>The thickness of the border's line.
+<dt>Style<dd>The type of line. Each brand of browser often handles these differently.
+Only Solid is for certain.
+<dt>Color<dd>The color of the line. Clicking this brings up a color chooser
+like that for text color.
+</dl>
+</div>
+<b>LAYOUT</b><br><br>
+The layout attributes affect the positioning of characters within the cell.
+The layout attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Cell Layout<dd>If "Use default" is selected, the default for all cells will apply to this cell.
+If "Set explicitly" is selected, then the Alignment and Padding settings will apply.
+<dt>Alignment<dd>The vertical alignment of the content within the cell if the cell is larger vertically than the content.
+<dt>Padding<dd>The amount of padding between the cell border and the content, setable for each side independently.
+<dt>All Cells<dd>This lets you edit the default values used for all cells that have no
+setting or have "Use default" chosen.
+If the default is set to "Use default", then a common built-in setting is used.
+</dl>
+</div>
+<b>COLUMNS</b><br><br>
+The column attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Width<dd>This is how wide the column will attempt to be.
+Depending upon the content and browser window it may be different.
+"Auto" tries to make it as wide as the content.
+"Set" lets you set an explicit value in either pixels or percent.
+When "Set" is checked a slider appears which you can drag on a scale to change the value.
+"Default" uses the All Cells default value for the column width.
+(All cells in a column have the same width.)
+<dt>Visibility<dd>If checked the column will be hidden when Previewed or Published.
+This lets you have comments or intermediate calculations that are not shown in the final result
+but that are visible next time you edit.
+<dt>All Cells<dd>This lets you edit the default used for all columns that have no
+setting or have the Default chosen.
+If the default is left to a default value, then a common built-in setting is used.
+</dl>
+</div>
+<b>ROWS</b><br><br>
+The row attribute is:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Visibility<dd>If checked the row will be hidden when Previewed or Published.
+This lets you have comments or intermediate calculations that are not shown in the final result
+but that are visible next time you edit.
+</dl>
+</div>
+<b>MISC</b><br><br>
+The miscellaneous attributes are:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Cell CSS Class<dd>When the page is Published this CSS style, if present, will replace the one
+determined by the other settings, such as font family, font size, color, borders, etc.
+This is an advanced feature and is designed to be used with a specific style sheet
+associated with the published file.
+This makes it easier to follow corporate and other standard "looks".
+<dt>Cell CSS Style<dd>This text that will be added to a "style" attribute to the cell's "&lt;td>" tag.
+For example, the value "color:red;padding:20px;" will make the text red and provide 20 pixels of padding
+on each side within the cell.
+This is an advanced feature that lets people who know HTML and CSS have further control of the look of the results.
+This value, if present, is applied during editing, Previewing, and Publishing.
+<dt>Live View Modifiable<dd>If checked, the cell may have a new value specified
+in the URL that retrieves a Live View of the sheet, overriding the value
+saved in the sheet for that view (the new value is not saved).
+If not checked (the default), the cell's value may not be overridden.
+This feature only affects Live View.
+See the Publish tab help for more information about Live View.
+</dl>
+</div>
+<br>
+
+*** WKCtextdataname: previewhelptext ***
+<b>PUBLISH HELP</b><br><br>
+The Publish tab shows how the page will look without the cell grid shown but without the HTML template used when published.
+To edit the page click on the Edit tab or click within a particular cell on the page.
+To publish the page or view it as already published, click the appropriate button:
+<br><br>
+<b>PUBLISH</b><br><br>
+The Publish button displays the URL of the page when published (if the site URL for HTML
+in the site properties is set),
+some publish options, and the currently set comments that will be associated with this page when
+next published.<br><br>
+The Options correspond to settings on the page Properties page (accessible through the Tools tab)
+and may normally be ignored unless you need these features:
+<div style="padding:1em 0 1em 20pt;">
+If <b>Publish HTML</b> is checked, at publish time a copy of the current sheet
+is converted to static HTML along with the specified template and stored in the
+HTML directory for serving by a web server.
+Leave this unchecked if you only want the page viewable using the live viewing facility.
+<b>(See the description of Live Viewing below.)</b>
+This is checked by default and publishing static HTML pages is the normal way to publish pages for many sites.
+<br><br>
+If <b>Publish Source</b> is checked, at publish time a copy of the page data file will be put
+on the web in the same directory as the newly published HTML file (if requested),
+but with the extension ".txt" instead of ".html".
+That published data file may be copied when creating a new page
+(using the Add New Page's "Copy from URL" option).
+It may also be used to access the sheet from pages on other sites and other purposes.
+For example, if cell E20 contained the URL of a page's source "http://www.domain.com/stats.txt",
+then the reference "E20!B5" would access the value of cell B5 on that page when most recently published
+and "sum(E20!C10:C20)" would add up the values in cells C10 through C20 on that page.
+<br><br>
+If <b>Publish Embeddable ".js" Version</b> is checked, at publish time a copy of the newly published
+HTML will be saved (along with appropriate Javascript) in the HTML directory, but with the extension ".js" instead of ".html".
+Only the HTML of the sheet itself is saved in this version, not the surrounding template.
+This file may be dynamically included in any other HTML page on any web site by using HTML code such as:
+<div style="padding:1em 0 1em 10pt;">
+&lt;script type="text/javascript" src="http://www.domain.com/pagename.js"&gt; &lt;/script&gt;</div>
+The result is static and is not recalculated when accessed the way that it is with live viewing.
+<br><br>
+If <b>Allow Live View Without Login</b> is checked, viewing the page through the "live" interface
+will be allowed even if the user is not logged in or is logged in as a user without
+permission to access this site.
+</div>
+The Comments are used to save information about changes made to the page that might be useful to
+editors in the future as well as current readers.
+The comments are shown in the Backups list of previously published instances of a page as well
+as in RSS feeds.
+The comments may be edited here.
+They may be saved without publishing by pressing the <b>Save Comments</b> button.
+<br><br>
+The <b>Publish and Continue</b> button saves the comments and then publishes the page.
+The page remains open for editing, but the log of edits
+(displayed as part of the Tools Backups Details display) is reset as if editing was started anew.
+<br><br>
+The <b>Publish and Close</b> button saves the comments and then publishes the page.
+The page is closed for editing by this user for now, "checking it back in" so others may edit it.
+<br><br>
+Publishing a page normally renders the page as HTML wrapped in the template HTML specified in the page's properties.
+A backup copy of the editable file is stored as specified by the Backup Preferences for the page's site
+(set with the Tools Backups command).
+A list of backup files may be displayed along with some of the information stored in them using the
+Tools Backups command.
+You can revert to a previous backup copy if you need to.
+<br><br>
+Publishing will also update the page and site RSS feed files if RSS is enabled for the site.
+<br><br>
+<b>VIEW ON WEB</b><br><br>
+The View On Web button displays buttons that will bring up the most recently published version of the page in the browser window.
+There is an option to display it in the current window or another, popup window.
+<br><br>
+You have the option of either seeing the page from the published static HTML
+(this only works if the file exists and the site's URL for HTML has been set)
+or as a Live View (this only works if the page has been published and
+the site's URL for Editing has been set).
+<br><br>
+<b>LIVE VIEWING</b><br><br>
+This is a feature through which you can have the most recently published
+version of a page rendered for display upon request, usually after first doing a recalculation.
+Unlike static HTML which the server just returns as it was created at
+publish time, this "live" rendering is done by the server executing
+this program to read the page source data file, doing the recalculation, and then converting
+the results to HTML.
+References to values on other pages, functions that return the current date/time, etc.,
+can result in different results than at the time the page was last published.
+<br><br>
+You access a page for live viewing by accessing the URL For Editing with appropriate arguments.
+The browser accessing the page must be logged in as a user with
+read or read/write privileges to the page's site or the page must
+have been published with Allow Live View Without Login checked.
+<br><br>
+The general form for requesting a live view page is something like:
+<br><br>
+<div style="padding-left:20pt;">http://www.domain.com/cgi-bin/wikicalccgi.pl?view=<i>sitename</i>/<i>pagename</i></div>
+<br>
+There are five types of output that can be obtained through the live view functionality:
+page (a normal HTML page, including the template HTML), html (just the HTML of the
+sheet rendered as a table), js (Javascript to embed the HTML of the table within another page),
+cdata (the table HTML as cdata within XML for use by Ajax, innerHTML, etc.), and source (the page source in
+the same format it is produced by "Publish Source").
+The "page" type is the default.
+If not logged in and requesting type "page", a login page will be displayed.
+Type "source" is only provided if "Publish Source" was checked for this page for the most recent publish.
+<br><br>
+You specify the type with a "type" argument:
+<br><br>
+<div style="padding-left:20pt;">?view=<i>sitename</i>/<i>pagename</i>&amp;type=<i>outputtype</i></div>
+<br>
+The saved page is recalculated before display unless there is a "&amp;recalc=no" argument.
+The saved page is not modified by viewing it, even if a recalculation is done.
+<br><br>
+The values of cells may be temporarily changed before recalculation by using
+a "cell" argument:
+<br><br>
+<div style="padding-left:20pt;">&amp;cell:<i>coord</i>:<i>type</i>=<i>value</i></div>
+<br> 
+"coord" is a cell coordinate, such as B7; "type" is "n" (numeric), "t" (text), or
+"e:na" (error: NA value); and "value" is the value.
+There may only be one cell argument for each coordinate.
+The cell must have "Live View Modifiable" set to "yes"
+(one of the Format Misc settings).
+The modifications are not saved in the data file.
+<br><br>
+The logged in user may be logged out using the following argument:
+<br><br>
+<div style="padding-left:20pt;">?view=logout</div>
+
+*** WKCtextdataname: backuphelptext ***
+<b>BACKUPS HELP</b><br><br>
+Whenever a page is published a backup copy of the data file used to create the rendered HTML page is saved.
+The Tools Backups command is used to manage those files.
+<br><br>
+The Backups Command has three different lists that it can display:
+the list of all existing backups for <b>one page</b>,
+the list of information about backups for <b>all pages</b> in a site,
+and the <b>details from a particular backup file</b> for a single page.
+In addition there are Preference settings that control how many backup files are preserved.
+<br><br>
+There are three types of backup files: the "published" data file, normal backup files, and "archive" backup files.
+All are stored in the same data directory on the system.
+The published data files are the data files as they last were when edited before publishing.
+They have a name in the format "pagename.published.txt".
+The backup data files are copies of the published data files made each time a page is published
+with a filename that reflects the time (GMT) when the page was published.
+They have a name in the format "pagename.backup.year-month-day-hour-min-sec.txt".
+<br><br>
+Older backup files can be automatically deleted so that only a specified number of backup files are kept
+(see Preferences below).
+Any particular backup file, though, may be designated an "archive" backup file and may then only be deleted using
+an explicit command.
+The archive backup data files are in the same internal format as the backup data files and have
+a name in the format "pagename.archive.year-month-day-hour-min-sec.txt".
+<br><br>
+<b>BACKUPS FOR ONE PAGE</b><br><br>
+This is a list of all existing backup and archive files for a particular page.
+For each file it lists the date/time published, the author (if known), the number
+of entries in the page's edit log, the comments set for that particular publish time,
+and the type of file (backup file, archive file, or current edit file not yet published).
+<br><br>
+The Edit button lets you open a particular backup file for edit.
+Doing that will not replace the most recently published file until you publish it
+so you can use this to just examine the old page.
+However, opening it for edit will discard all edits currently made but unpublished to that particular page if
+it is open for edit. Before discarding the edits a popup should warn you and wait for confirmation.
+<br><br>
+The Details button switches to the Details display for that data file.
+That display has its own help text.
+<br><br>
+The Archive button turns a normal backup file into an archive file.
+<br><br>
+The Delete button lets you delete a particular backup or archive file.
+It does NOT ask for confirmation.
+<br><br>
+<b>BACKUPS FOR ALL PAGES</b><br><br>
+This is a list of pages on the site that have backups.
+It is sorted in reverse chronological order by publish date/time.
+For each line, there is the name of the page, the Full Name of the page (if available),
+the date/time of the most recently created backup for that page in the group of
+backup files represented by that line in the list, and the number of backup files in the group.
+A new line in the listing appears whenever the next older backup is from a different page.
+<br><br>
+The List button next to the first instance of a page's name may be used to switch to the
+Backups for One Page view of for that page.
+<br><br>
+<b>PREFERENCES</b><br><br>
+You may specify the maximum number of backup files to keep for each page.
+This setting applies to all pages on the current site.
+<br><br>
+You may also specify the minimum number of days to keep a file
+(counting from the time when publishing is done)
+to prevent a backup file from being deleted no matter what the Maximum Backup Files setting.
+This will prevent a flurry of edits and publishes from prematurely deleting recent backups but can result in
+the number of files in the data directory growing large.
+<br><br>
+By default, a site keeps all backup files.
+Use the Preferences settings to change that behavior.
+<br><br>
+
+*** WKCtextdataname: backupdetailshelptext ***
+<b>BACKUPS DETAILS HELP</b><br><br>
+This is a display of detailed information from a single backup file.
+It consists of the following:
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>Site<dd>The full and short name for the site the page is on.
+<dt>Backup Filename<dd>The name of this backup file.
+<dt>Page<dd>The full and short name for the page as stored in this backup file.
+(The full name may change over time due to edits using the Tools Page Preferences command.)
+<dt>Last Author<dd>The author at the time of the last modification, if known.
+<dt>Comments<dd>The comments set by the user before publishing, if any.
+<dt>Started With File<dd>The date/time of the backup or archive file before this one in time.
+<dt>Edits<dd>A list of the edit log which has lines representing most edits made to the page
+during the time covered by this backup file.
+The lines in the log represent "commands" executed in response to user operations
+or comments preceded by "#" representing operations that are not fully described by commands.
+For example, "set B5 value n 15" means "set cell B5 to the numeric value 15", and
+"insertrow B31" means "insert a row above cell B31".
+</dl>
+</div>
+<br>
+
+*** WKCtextdataname: functionhelptext ***
+<b>FUNCTION HELP</b>
+<div style="text-align:right;margin-bottom:8px;">
+(<a href="" onclick="ajaxgetnamedtext_request('edithelptext', 'helpbody');return false;">Back To Edit Help</a>)
+</div>
+<b>= = = STANDARD FUNCTIONS = = =</b><br><br>
+The following functions are currently supported in formulas (case is ignored in function names):
+<div style="padding:6pt 0px 0px 1em;">
+<dl>
+<dt>ABS(value)<dd>Absolute value function.
+<dt>ACOS(value)<dd>Trigonometric arccosine function.
+<dt>AND(value1, value2, ...)<dd>True if all arguments are true.
+<dt>ASIN(value)<dd>Trigonometric arcsine function.
+<dt>ATAN(value)<dd>Trigonometric arctan function.
+<dt>ATAN2(valueX, valueY)<dd>Trigonometric arc tangent function (result is in radians).
+<dt>AVERAGE(value, value, ...)<dd>Averages the values.
+<dt>CHOOSE(index, value1, value2, ...)<dd>Returns the value specified by the index. The values may be ranges of cells.
+<dt>COLUMNS(range)<dd>Returns the number of columns in the range.
+<dt>COS(value)<dd>Trigonometric cosine function (value is in radians).
+<dt>COUNT(value, value, ...)<dd>Counts the number of numeric values, not blank, text, or error.
+<dt>COUNTA(value, value, ...)<dd>Counts the number of non-blank values.
+<dt>COUNTBLANK(value, value, ...)<dd>Counts the number of blank values. (Note: "" is not blank.)
+<dt>COUNTIF(range, criteria)<dd>Counts the number of number of cells in the range that meet the criteria.
+The criteria may be a value ("x", 15, 1+3) or a test (>25).
+<dt>DATE(year, month, day)<dd>Returns the appropriate date value given numbers for year, month, and day.
+For example: DATE(2006,2,1) for February 1, 2006.
+Note: In this program, day "1" is December 31, 1899 and the year 1900 is not a leap year.
+Some programs use January 1, 1900, as day "1" and treat 1900 as a leap year.
+In both cases, though, dates on or after March 1, 1900, are the same.
+<dt>DAVERAGE(databaserange, fieldname, criteriarange)<dd>Averages the values in the specified field in records that meet the criteria.
+<dt>DAY(value)<dd>Returns the day of month for a date value.
+<dt>DCOUNT(databaserange, fieldname, criteriarange)<dd>Counts the number of numeric values, not blank, text, or error, in the specified field in records that meet the criteria.
+<dt>DCOUNTA(databaserange, fieldname, criteriarange)<dd>Counts the number of non-blank values in the specified field in records that meet the criteria.
+<dt>DDB(cost, salvage, lifetime, period [, factor])<dd>
+Returns the amount of depreciation at the given period of time
+(the default factor is 2 for double-declining balance).  
+<dt>DEGREES(value)<dd>Converts value in radians in to degrees.
+<dt>DGET(databaserange, fieldname, criteriarange)<dd>Returns the value of the specified field in the single record that meets the criteria.
+<dt>DMAX(databaserange, fieldname, criteriarange)<dd>Returns the maximum of the numeric values in the specified field in records that meet the criteria.
+<dt>DMIN(databaserange, fieldname, criteriarange)<dd>Returns the maximum of the numeric values in the specified field in records that meet the criteria.
+<dt>DPRODUCT(databaserange, fieldname, criteriarange)<dd>Returns the result of multiplying the numeric values in the specified field in records that meet the criteria.
+<dt>DSTDEV(databaserange, fieldname, criteriarange)<dd>Returns the sample standard deviation of the numeric values in the specified field in records that meet the criteria.
+<dt>DSTDEVP(databaserange, fieldname, criteriarange)<dd>Returns the standard deviation of the numeric values in the specified field in records that meet the criteria.
+<dt>DSUM(databaserange, fieldname, criteriarange)<dd>Returns the sum of the numeric values in the specified field in records that meet the criteria.
+<dt>DVAR(databaserange, fieldname, criteriarange)<dd>Returns the sample variance of the numeric values in the specified field in records that meet the criteria.
+<dt>DVARP(databaserange, fieldname, criteriarange)<dd>Returns the variance of the numeric values in the specified field in records that meet the criteria.
+<dt>EVEN(value)<dd>Rounds the value up in magnitude to the nearest even integer.
+<dt>EXACT(value1, value2)<dd>Returns "true" if the values are exactly the same, including case, type, etc.
+<dt>EXP(value)<dd>Returns e raised to the value power.
+<dt>FACT(value)<dd>Returns factorial of the value.
+<dt>FALSE( )<dd>Returns the logical value "false".
+<dt>FIND(string1, string2 [, start])<dd>Returns the starting position within string2 of the first
+occurrence of string1 at or after "start". If start is omitted, 1 is assumed.
+<dt>FV(rate, n, payment, [pv, [paytype]])<dd>Returns the future value of repeated payments of money
+invested at the given rate for the specified number of periods,
+with optional present value (default 0) and payment type
+(default 0 = at end of period, 1 = beginning of period).
+<dt>HLOOKUP(value, range, row, [rangelookup])<dd>Look for the matching value for the given value in the
+range and return the corresponding value in the cell specified by the row offset.
+If rangelookup is 1 (the default) and not 0, match if within numeric brackets (match&lt;=value) instead of exact match.
+<dt>HOUR(value)<dd>Returns the hour portion of a time or date/time value.
+<dt>IF(logical-expression, true-value, false-value)<dd>Results in true-value if logical-expression is TRUE or non-zero,
+otherwise results in false-value.
+<dt>INDEX(range, rownum, colnum)<dd>Returns a cell or range reference for the specified row and column in the range.
+If range is 1-dimensional, then only one of rownum or colnum are needed.
+If range is 2-dimensional and rownum or colnum are zero, a reference to the range of just the specified column or row is returned.
+You can use the returned reference value in a range, e.g., sum(A1:INDEX(A2:A10,4)).
+<dt>INT(value)<dd>Returns the value rounded down to the nearest integer (towards -infinity).
+<dt>IRR(range, [guess])<dd>Returns the interest rate at which the cash flows in the range
+have a net present value of zero. Uses an iterative process that will return
+#NUM! error if it does not converge.
+There may be more than one possible solution.
+Providing the optional guess value may help in certain situations
+where it does not converge or finds an inappropriate solution (the default guess is 10%).
+<dt>ISBLANK(value)<dd>Returns "true" if the value is a reference to a blank cell.
+<dt>ISERR(value)<dd>Returns "true" if the value is of type "Error" but not "NA".
+<dt>ISERROR(value)<dd>Returns "true" if the value is of type "Error".
+<dt>ISLOGICAL(value)<dd>Returns "true" if the value is of type "Logical" (true/false).
+<dt>ISNA(value)<dd>Returns "true" if the value is the error type "NA".
+<dt>ISNONTEXT(value)<dd>Returns "true" if the value is not of type "Text".
+<dt>ISNUMBER(value)<dd>Returns "true" if the value is of type "Number" (including logical values).
+<dt>ISTEXT(value)<dd>Returns "true" if the value is of type "Text".
+<dt>LEFT(text, count)<dd>Returns the specified number of characters from the text value.
+If count is omitted, 1 is assumed.
+<dt>LEN(text)<dd>Returns the number of characters in the text value.
+<dt>LN(value)<dd>Returns the natural logarithm of the value.
+<dt>LOG(value, base)<dd>Returns the logarithm of the value using the specified base.
+<dt>LOG10(value)<dd>Returns the base 10 logarithm of the value.
+<dt>LOWER(text)<dd>Returns the text value with all uppercase characters converted to lowercase.
+<dt>MATCH(value, range, [rangelookup])<dd>Look for the matching value for the given value in the
+range and return position (the first is 1) in that range.
+If rangelookup is 1 (the default) and not 0, match if within numeric brackets (match&lt;=value) instead of exact match.
+If rangelookup is -1, act like 1 but the bracket is match&gt;=value.
+<dt>MAX(value, value, ...)<dd>Returns the maximum of the numeric values.
+<dt>MID(text, start, length)<dd>Returns the specified number of characters from the text value
+starting from the specified position.
+<dt>MIN(value1, value2, ...)<dd>Returns the minimum of the numeric values.
+<dt>MINUTE(value)<dd>Returns the minute portion of a time or date/time value.
+<dt>MOD(value1, value2)<dd>Returns the remainder of the first value divided by the second.
+<dt>MONTH(value)<dd>Returns the month part of a date value.
+<dt>N(value)<dd>Returns the value if it is a numeric value otherwise an error.
+<dt>NA( )<dd>Returns the #N/A error value which propagates through most operations.
+<dt>NOT(value)<dd>Returns FALSE if value is true, and TRUE if it is false.
+<dt>NOW( )<dd>Returns the current date/time.
+<dt>NPER(rate, payment, pv, [fv, [paytype]])<dd>Returns the number of periods at which
+payments invested each period at the given rate with optional future value (default 0)
+and payment type (default 0 = at end of period, 1 = beginning of period)
+has the given present value.
+<dt>NPV(rate, value1, value2, ...)<dd>Returns the net present value of cash flows
+(which may be individual values and/or ranges) at the given rate.
+The flows are positive if income, negative if paid out, and are assumed at the end of
+each period.
+<dt>ODD(value)<dd>Rounds the value up in magnitude to the nearest odd integer.
+<dt>OR(value1, value2,...)<dd>True if any argument is true
+<dt>PI( )<dd>The value 3.1415926...
+<dt>PMT(rate, n, pv, [fv, [paytype]])<dd>Returns the amount of each payment that must be
+invested at the given rate for the specified number of periods
+to have the specified present value, with optional future value (default 0)
+and payment type (default 0 = at end of period, 1 = beginning of period).
+<dt>POWER(value1, value2)<dd>Returns the first value raised to the second value power.
+<dt>PRODUCT(value1, value2, ...)<dd>Returns the result of multiplying the numeric values.
+<dt>PROPER(value)<dd>Returns the text value with the first letter of each word
+converted to uppercase and the others to lowercase.
+<dt>PV(rate, n, payment, [fv, [paytype]])<dd>Returns the present value of
+the given number of payments each invested at the given rate,
+with optional future value (default 0)
+and payment type (default 0 = at end of period, 1 = beginning of period).
+<dt>RADIANS(value)<dd>Converts value in degrees into radians.
+<dt>RATE(n, payment, pv, [fv, [paytype, [guess]]])<dd>Returns the rate at which
+the given number of payments each invested at the given rate has the
+specified present value, with optional future value (default 0)
+and payment type (default 0 = at end of period, 1 = beginning of period).
+Uses an iterative process that will return #NUM! error if it does not converge.
+There may be more than one possible solution.
+Providing the optional guess value may help in certain situations
+where it does not converge or finds an inappropriate solution (the default guess is 10%).
+<dt>REPLACE(text1, start, length, text2)<dd>Returns text1 with the specified number of characters
+starting from the specified position replaced by text2.
+<dt>REPT(text, count)<dd>Returns the text repeated the specified number of times.
+<dt>RIGHT(text, count)<dd>Returns the specified number of characters from the text value
+starting from the end.
+If count is omitted, 1 is assumed.
+<dt>ROUND(value, [precision])<dd>Rounds the value to the specified number of decimal places.
+If precision is negative, then round to powers of 10.
+The default precision is 0 (round to integer).
+<dt>ROWS(range)<dd>Returns the number of rows in the range.
+<dt>SECOND(value)<dd>Returns the second portion of a time or date/time value (truncated to an integer).
+<dt>SIN(value)<dd>Trigonometric sine function (value is in radians)
+<dt>SLN(cost, salvage, lifetime, period)<dd>
+Returns the amount of depreciation at each period of time using the straight-line method.
+<dt>SQRT(value)<dd>Square root of the value
+<dt>STDEV(value, value, ...)<dd>Returns the sample standard deviation of the numeric values.
+<dt>STDEVP(value, value, ...)<dd>Returns the standard deviation of the numeric values.
+<dt>SUBSTITUTE(text1, oldtext, newtext [, occurrence])<dd>Returns text1 with the all occurrences
+of oldtext replaced by newtext. If "occurrence" is present, then only that occurrence is replaced.
+<dt>SUM(value, value, ...)<dd>Adds the numeric values. The values to the sum function may be ranges in the form similar to A1:B5.
+<dt>SUMIF(range1, criteria [, range2])<dd>Sums the numeric values of cells in the range that meet the criteria.
+The criteria may be a value ("x", 15, 1+3) or a test (>25).
+If range2 is present, then range1 is tested and the corresponding range2 value is summed.
+<dt>TAN(value)<dd>Trigonometric tangent function (value is in radians)
+<dt>TIME(hour, minute, second)<dd>Returns the time value given the specified
+hour, minute, and second.
+<dt>TODAY( )<dd>Returns the current date (an integer).
+Note: In this program, day "1" is December 31, 1899 and the year 1900 is not a leap year.
+Some programs use January 1, 1900, as day "1" and treat 1900 as a leap year.
+In both cases, though, dates on or after March 1, 1900, are the same.
+<dt>TRIM(text)<dd>Returns the text value with leading, trailing, and repeated spaces removed.
+<dt>TRUE( )<dd>Returns the logical value "true".
+<dt>TRUNC(value, precision)<dd>Truncates the value to the specified number of decimal places.
+If precision is negative, truncate to powers of 10.
+<dt>UPPER(text)<dd>Returns the text value with all lowercase characters converted to uppercase.
+<dt>VALUE(value)<dd>Converts the specified text value into a numeric value.
+Various forms that look like numbers (including digits followed by %, forms that look like
+dates, etc.) are handled.
+This may not handle all of the forms accepted by other spreadsheets and may be
+locale dependent.
+<dt>VAR(value, value, ...)<dd>Returns the sample variance of the numeric values.
+<dt>VARP(value, value, ...)<dd>Returns the variance of the numeric values.
+<dt>VLOOKUP(value, range, col, [rangelookup])<dd>Look for the matching value for the given value in the
+range and return the corresponding value in the cell specified by the column offset.
+If rangelookup is 1 (the default) and not 0, match if within numeric brackets (match&lt;=value) instead of exact match.
+<dt>WEEKDAY(date, [type])<dd>Returns the day of week specified by the date value.
+If type is 1 (the default), Sunday is day and Saturday is day 7.
+If type is 2, Monday is day 1 and Sunday is day 7.
+If type is 3, Monday is day 0 and Sunday is day 6.
+<dt>YEAR(date)<dd>Returns the year part of a date value.
+</dl>
+<b>= = = WIKICALC SPECIFIC FUNCTIONS = = =</b><br><br>
+Functions specific to this program:
+<dl>
+<dt>wkcERRCELL<dd>Used to replace illegal cell addresses when rows or columns are deleted.
+<dt>wkcHTML(value, value, ...)<dd>Returns the values as a single HTML text value.
+HTML values are passed to the browser as is, so HTML tags are used for rendering.
+This is an advanced feature.
+You can format any cell to treat text as HTML with a text format of HTML.
+The result of this function will default to displaying as HTML text.
+<dt>wkcHTTP(url, timeout, errorvalue, method, arg1, arg2, ...)<dd>Uses the web to access the URL.
+This is an advanced feature.
+Arguments other than the URL are optional. Timeout is in seconds. Errorvalue is returned on errors including timeouts.
+Method should be the text value "GET" or "POST".
+The rest of the arguments are passed to the URL as parameters "V1", "V2", etc.
+The format they are passed is "Tvalue", where "T" is N (numeric), T (text), B (blank), or E (error).
+The URL should return text in the form "Tvalue", where "T" is N, T, H (HTML text), or E (error followed by text)
+<dt>wkcTEXT(value, value, ...)<dd>Returns the values as a single plain text value. Values may be cell references.
+</dl>
+</div>
+<a href="" onclick="ajaxgetnamedtext_request('edithelptext', 'helpbody');return false;">Back To Edit Help</a><br><br>
+
+*** WKCtextdataname: done ***
+

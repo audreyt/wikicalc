@@ -1,0 +1,214 @@
+<script>
+
+//
+// Javascript used by Create New Page in wikiCalc to get list of pages templates to copy
+//
+
+// (c) Copyright 2006 Software Garden, Inc.
+// All Rights Reserved.
+// Subject to Software License included with WKC.pm
+
+var loading=false; // whether waiting for ajax request to finish
+var timeoutseconds=20; // time to wait for ajax to return
+var timeoutval; // used to cancel timeout checking
+
+var currentpagename;
+var currentsitename;
+
+// Information about the pages:
+
+//
+// AJAX requestor
+//
+// Based on: http://developer.mozilla.org/en/docs/AJAX:Getting_Started, (c) 2005 Mozilla Foundation, MIT license
+// along with: http://www.xml.com/pub/a/2005/05/11/ajax-error.html (c) 2005 O'Reilly Media, Inc.
+//
+
+var http_request = false;
+var subtocall = function() {alert("No function set");}; // remembers routine to call on successful return
+
+function makeRequest(sitename, s) { // site to get the page list of, sub to call
+
+ http_request = false;
+
+ // Create a new XMLHTTP request object
+
+ if (window.XMLHttpRequest) { // Mozilla, Safari,...
+  http_request = new XMLHttpRequest();
+  if (http_request.overrideMimeType) {
+   http_request.overrideMimeType('text/xml');
+   }
+  }
+ else if (window.ActiveXObject) { // IE
+  try {
+   http_request = new ActiveXObject("Msxml2.XMLHTTP");
+   }
+  catch (e) {
+   try {
+    http_request = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+   catch (e) {}
+   }
+  }
+ if (!http_request) {
+  alert('Giving up :( Cannot create an XMLHTTP instance');
+  return false;
+  }
+
+ // Make the actual request
+
+ http_request.onreadystatechange = alertContents;
+ subtocall = s;
+ http_request.open('POST', document.URL, true);
+ http_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+ var reqcontents = "&ajaxgetpagelist="+sitename;
+ reqcontents = reqcontents + "&loggedinusername="+document.f0.loggedinusername.value;
+ reqcontents = reqcontents + "&loggedinuserpassword="+document.f0.loggedinuserpassword.value;
+ loading = true; // remember so we won't do much else
+ http_request.send(reqcontents);
+ timeoutval = window.setTimeout("ajaxtimeout();", 1000*timeoutseconds); // only give it this long
+ }
+
+//
+// This routine processes the status callbacks from the XMLHTTP request
+//
+// The data is assumed to be in a CDATA section immediately under the first <root> item.
+//
+
+function alertContents() {
+
+ if (http_request.readyState == 4) {
+  window.clearTimeout(timeoutval);
+  try {
+   if (http_request.status == 200) {
+    var xmldoc = http_request.responseXML;
+    var root_node = xmldoc.getElementsByTagName('root').item(0);
+    subtocall(root_node.firstChild.data);
+    loading = false;
+    }
+   else {
+    alert(newpagejsstrings["ajaxerrstatus"]+http_request.statusText);
+    }
+   }
+  catch (e) {
+    alert(newpagejsstrings["ajaxerrnostatus"]);
+   }
+  }
+ }
+
+//
+// This routine processes the timeout
+//
+
+function ajaxtimeout() {
+
+ http_request.abort();
+ alert(newpagejsstrings["ajaxerrtimeout1"]+timeoutseconds+newpagejsstrings["ajaxerrtimeout2"]);
+ }
+
+//
+// Routine to set the display attribute of an HTML element with an ID
+//
+// idlist should be an array of ids (like: ["id1", "id2"]) and v should be "block" or "none"
+//
+
+function set_display(idlist,v) {
+ for (var i=0; i<idlist.length; i++) {
+  var id=idlist[i];
+  var idnode=document.getElementById(id);
+  if (idnode) {
+   idnode.style.display=v;
+   }
+  }
+ }
+
+//
+// Converts escaped AJAX encoded text to normal
+//
+
+function decode_field(v,d) {
+ var rv = v;
+ rv=rv.replace(/\\c/g, ":");
+ rv=rv.replace(/\\e/g, "]]>");
+ rv=rv.replace(/\\n/g, "\n");
+ rv=rv.replace(/\\b/g, "\\");
+ if (!rv) rv = d;
+ return rv;
+}
+
+//
+// Routine to process the ajax call returned data
+//
+
+function set_select(str) {
+ document.f0.sitepagelist.options.length=0; // empty list
+ var namelist=str.split(":");
+ if (namelist.length && namelist[0]=="error") {
+  alert(namelist[1]);
+  return;
+  }
+ var ln;
+ for (var i=1; i<namelist.length; i=i+3) {
+  ln=decode_field(namelist[i+1],"");
+  if (ln) {
+   ln = ": "+ln;
+   }
+  if ((document.f0.edittemplatetype[2].checked && namelist[i+2]=="p")||
+      (document.f0.edittemplatetype[3].checked && (namelist[i+2]=="e" || namelist[i+2]=="r"))) {
+   document.f0.sitepagelist.options[document.f0.sitepagelist.options.length]=new Option(namelist[i]+ln, namelist[i]);
+   if (namelist[i]==currentpagename && document.f0.sitelist.options[document.f0.sitelist.selectedIndex].value==currentsitename) {
+    document.f0.sitepagelist.options[document.f0.sitepagelist.options.length-1].selected=true;
+    }
+   }
+  }
+ if (document.f0.sitepagelist.options.length==0) { // none
+  document.f0.sitepagelist.options[0]=new Option(newpagejsstrings["ajaxnosuchpagestocopy"], "");
+  }
+}
+
+//
+// Routine to get the pages
+//
+
+function update_pagelist() {
+ document.f0.sitepagelist.options.length=0; // empty list
+ document.f0.sitepagelist.options[0]=new Option(newpagejsstrings["ajaxretrieving"],"");
+ makeRequest(document.f0.sitelist.options[document.f0.sitelist.selectedIndex].value, set_select);
+}
+
+//
+// Routine to hide/show lists of templates/pages
+//
+
+function settemplate () {
+ if (document.f0.edittemplatetype[0].checked) {
+  document.getElementById("templatelistid").style.display="none";
+  document.getElementById("templatepagesid").style.display="none";
+  document.getElementById("templateurlid").style.display="none";
+  }
+ if (document.f0.edittemplatetype[1].checked) {
+  document.getElementById("templatelistid").style.display="block";
+  document.getElementById("templatepagesid").style.display="none";
+  document.getElementById("templateurlid").style.display="none";
+  }
+ if (document.f0.edittemplatetype[2].checked) {
+  document.getElementById("templatelistid").style.display="none";
+  document.getElementById("templatepagesid").style.display="block";
+  document.getElementById("templateurlid").style.display="none";
+  update_pagelist();
+  }
+ if (document.f0.edittemplatetype[3].checked) {
+  document.getElementById("templatelistid").style.display="none";
+  document.getElementById("templatepagesid").style.display="block";
+  document.getElementById("templateurlid").style.display="none";
+  update_pagelist();
+  }
+ if (document.f0.edittemplatetype[4].checked) {
+  document.getElementById("templatelistid").style.display="none";
+  document.getElementById("templatepagesid").style.display="none";
+  document.getElementById("templateurlid").style.display="block";
+  }
+}
+
+</script>
+

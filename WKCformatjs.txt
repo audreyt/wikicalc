@@ -1,0 +1,1174 @@
+<script>
+
+// WKCformatjs.txt
+
+// (c) Copyright 2006 Software Garden, Inc.
+// All Rights Reserved.
+// Subject to Software License included with WKC.pm
+
+var sheetattribs={}; // unparsed cell attributes not otherwise stored
+var sheetparsedattribs={}; // parsed attributes, sheetparsedattribs[font][fontSize]
+var sheetcommon={}; // strings in common, e.g.: sheetcommon["font"][1]=="Verdana"
+var sheetdefaults={}; // sheet attributes and default values
+var sheetcols={}; // column width and hide settings
+var sheetrows={}; // row hide settings
+var sheetcolelementwidths={}; // actual column widths saved from <col> elements
+
+var currentconfig;
+
+function switchto(newconfig) {
+ set_config(newconfig);
+ check_draglook();
+ return false;
+}
+
+function set_config(config) {
+ set_display(["c1numbers","c1text","c1fonts","c1colors","c1borders","c1layout","c1columns","c1rows","c1misc"], "none");
+ set_display(["c2numbers","c2text","c2fonts","c2colors","c2borders","c2layout","c2columns","c2rows","c2misc"], "none");
+ set_display(["c1"+config], "block");
+ set_display(["c2"+config], "inline");
+ set_display(["fpnumbers","fptext","fpfonts","fpcolors","fpborders","fplayout","fpcolumns","fprows","fpmisc"], "none");
+ set_display(["fp"+config], "block");
+ set_text("formattype", formatjsstrings["previewtext:"+config] || config.toUpperCase());
+
+ set_styles(["numbersbutton", "textbutton", "fontsbutton", "colorsbutton", "bordersbutton", "layoutbutton", "columnsbutton", "rowsbutton", "miscbutton"],"borderTop","none");
+ set_styles(["numbersbutton", "textbutton", "fontsbutton", "colorsbutton", "bordersbutton", "layoutbutton", "columnsbutton", "rowsbutton", "miscbutton"],"paddingTop","3px");
+ set_styles([config+"button"],"borderTop","2px solid black");
+ set_styles([config+"button"],"paddingTop","1px");
+
+ set_formatmode(config);
+
+ if (whichchooser) hidecolorchooser(); // make sure chooser goes away
+ if (columnchanged) { // changed a column as a preview -- undo it
+  document.getElementById("c_"+columnchanged).width=sheetcolelementwidths[columnchanged];
+  columnchanged=null;
+  }
+
+ update_formatpreview();
+}
+
+var whichchooser, whichcolorholder;
+
+function showcolorchooser(e,whichc,whichh) {
+ if (!e) e=window.event;
+ var ccid=document.getElementById("colorchooser");
+ ccid.style.left=e.clientX+"px";
+ ccid.style.top=e.clientY+"px";
+ ccid.style.display="block";
+ whichchooser=whichc;
+ whichcolorholder=whichh;
+ var tb=document.getElementById(whichc);
+ if (tb.style.backgroundImage) { // default
+  document.f0.explicitcolor.value="";
+  }
+ else {
+  var rgbvals=tb.style.backgroundColor.match(/(\d+)\D+(\d+)\D+(\d+)/);
+  document.f0.explicitcolor.value=rgbvals?toHex(rgbvals[1])+toHex(rgbvals[2])+toHex(rgbvals[3]):"";
+  }
+ }
+
+var hexdigits="0123456789ABCDEF";
+
+function toHex(num) {
+ var first=Math.floor(num / 16);
+ var second=num % 16;
+ return hexdigits.charAt(first)+hexdigits.charAt(second);
+ }
+
+function hidecolorchooser() {
+ set_display(["colorchooser"], "none");
+ whichchooser="";
+ }
+
+function ccolor(c) {
+ var parts=c.match(/([a-fA-F0-9]{2})([a-fA-F0-9]{2})([a-fA-F0-9]{2})/);
+ var rgbval="";
+ if (parts && parts.length>=4) { // non-legal values or null goes to default
+  rgbval="rgb("+(("0x"+parts[1])-0)+","+(("0x"+parts[2])-0)+","+(("0x"+parts[3])-0)+")";
+  }
+ if (rgbval) { // not default
+  set_styles([whichchooser], "backgroundColor", rgbval);
+  set_styles([whichchooser], "backgroundImage", "");
+  }
+ else {
+  set_styles([whichchooser], "backgroundColor", "");
+  set_styles([whichchooser], "backgroundImage", "url(?getfile=hatchbg)");
+  }
+ if (whichcolorholder) document.f0[whichcolorholder].value=rgbval;
+ hidecolorchooser();
+ if (currentconfig=="colors") display_controls_colors();
+ if (currentconfig=="borders")  display_controls_borders();
+ }
+
+function update_valueedits(c) {
+ if (columnchanged) { // changed a column as a preview -- undo it before showing another
+  document.getElementById("c_"+columnchanged).width=sheetcolelementwidths[columnchanged];
+  columnchanged=null;
+  }
+ set_text("coordtext",c);
+ parse_cell_attribs(c);
+ update_formatpreview();
+ }
+
+function parse_sheet_defaults() {
+ sheetdefaults.parsed={};
+ sheetdefaults.parsed.w={};
+ sheetdefaults.parsed.tf={};
+ sheetdefaults.parsed.ntf={};
+ sheetdefaults.parsed.layout={};
+ sheetdefaults.parsed.font={};
+ sheetdefaults.parsed.color={};
+ sheetdefaults.parsed.columns={};
+
+ if (sheetdefaults.tvf || sheetdefaults.tf) parse_numbers(sheetdefaults.tf, sheetdefaults.tvf, sheetdefaults.parsed.tf)
+ if (sheetdefaults.ntvf || sheetdefaults.ntf) parse_numbers(sheetdefaults.ntf, sheetdefaults.ntvf, sheetdefaults.parsed.ntf)
+ if (sheetdefaults.layout) parse_layout(sheetdefaults.layout, sheetdefaults.parsed.layout);
+ if (sheetdefaults.font) parse_font(sheetdefaults.font, sheetdefaults.parsed.font);
+ if (sheetdefaults.color || sheetdefaults.bgcolor) parse_colors(sheetdefaults.color, sheetdefaults.bgcolor, sheetdefaults.parsed.color);
+ if (sheetdefaults.c) parse_columns(null, sheetdefaults.w, sheetdefaults.parsed.columns);
+
+ }
+
+//
+// Routine to call after sheet loaded to remember col elements' width info
+//
+
+function save_coldata() {
+ for (var i=1; i<=sheetlastcol; i++) { // save col widths
+  var colname=rcColname(i);
+  sheetcolelementwidths[colname]=document.getElementById("c_"+colname).width;
+  }
+ }
+
+//
+// Routine to convert saved cell attributes into settings
+//
+
+function parse_cell_attribs(cr) {
+ var attribs=sheetattribs[cr].split("|",25);
+ var cborders=[attribs[1], attribs[2], attribs[3], attribs[4]]; // cell border parts
+ var clayout=attribs[6]; // cell layout number
+ var cfont=attribs[8]; // cell font
+ var ccolor=attribs[10]; // cell color
+ var cbgcolor=attribs[12]; // cell background color
+ var ccf=attribs[14]; // cell cell format
+ var ctvf=attribs[16]; // cell text value format
+ var cntvf=attribs[18]; // cell non-text value format
+ var ccssc=attribs[20]; // cell css class override
+ var ccsss=decode_field(attribs[22],""); // cell css style addition (encoded)
+ var cmod=attribs[24]; // cell mod setting
+
+ sheetparsedattribs.numbers={};
+ parse_numbers(ccf, cntvf, sheetparsedattribs.numbers);
+ document.f0.numbersedefault.checked=false; // start on cell
+
+ sheetparsedattribs.text={};
+ parse_text(ccf, ctvf, sheetparsedattribs.text);
+ document.f0.textedefault.checked=false;
+
+ sheetparsedattribs.font={};
+ parse_font(cfont, sheetparsedattribs.font);
+ document.f0.fontedefault.checked=false;
+
+ sheetparsedattribs.colors={};
+ parse_colors(ccolor, cbgcolor, sheetparsedattribs.colors);
+ document.f0.colorsedefault.checked=false;
+
+ sheetparsedattribs.layout={};
+ parse_layout(clayout, sheetparsedattribs.layout);
+ document.f0.explicitlayout.checked=false;
+
+ sheetparsedattribs.borders={};
+ parse_borders(cborders, sheetparsedattribs.borders);
+ if (cborders[0]==cborders[1] && cborders[0]==cborders[2] && cborders[0]==cborders[3]) { // all the same
+  document.f0.bordersseparately.checked=false;
+  }
+ else {
+  document.f0.bordersseparately.checked=true;
+  }
+
+ sheetparsedattribs.columns={};
+ parse_columns(sheetcols[rcColname(rcColnum(cr))], null, sheetparsedattribs.columns);
+ sheetparsedattribs.columns.colname=rcColname(rcColnum(cr)); // remember column name
+ document.f0.columnsedefault.checked=false;
+
+ sheetparsedattribs.rows={};
+ parse_rows(sheetrows[rcRownum(cr)], sheetparsedattribs.rows);
+
+ sheetparsedattribs.misc={};
+ parse_misc(ccssc, ccsss, cmod, sheetparsedattribs.misc);
+
+ }
+
+//
+// FORMAT PARSE/SET/DISPLAY ROUTINES
+//
+// There is one of each of these for each type of format.
+// Parse converts text formats to what we use here, Set sets controls to current value,
+// and Display updates sample, etc.
+//
+
+// Numbers: format string of some sort like $#,##0.00,
+// alignment is explicit for cell (any type of value) or default number alignment
+
+function parse_numbers(ccf, cntvf, ccvfo) {
+ ccvfo.textAlign=(ccf && sheetcommon.cellformat && sheetcommon.cellformat[ccf]) ? sheetcommon.cellformat[ccf] : "";
+ ccvfo.valueformat=(cntvf && sheetcommon.valueformat && sheetcommon.valueformat[cntvf]) ? sheetcommon.valueformat[cntvf] : "";
+ ccvfo.valueformat=ccvfo.valueformat.replace(/\\c/g, ":");
+}
+
+function set_controls_numbers(ccvfo) {
+ if (!ccvfo || !ccvfo.textAlign) {
+  set_radio_checked("numbersalign", "default");
+  }
+ else {
+  set_radio_checked("numbersalign", ccvfo.textAlign);
+  }
+ // find match for existing format string on current category or else load another
+ var cvfstring=(ccvfo && ccvfo.valueformat) ? ccvfo.valueformat : "default"; // current string value
+ var mcvfstring=cvfstring;
+ var mcvfstringsym;
+ var curstr=cvfstring.match(/\[\$(.+?)(\-.+?){0,1}]/); // look for special currency [$sym-locale]
+ if (curstr) {
+  mcvfstring = cvfstring.replace(/\[\$.+?(\-.+?){0,1}]/g, "[?$$]"); // modified string to handle customizable currency
+  }
+ var ccategory=":"+document.f0.nvclist.options[document.f0.nvclist.selectedIndex].value+":"; // category being displayed
+ var newcategory="";
+ for (var i=0; i<vfnames.length; i++) { // look through all possible
+  if (vfstrings[i]==mcvfstring) { // found format string
+   if (curstr) { // special currency
+    for (var j=0; j<document.f0.nvcurrencylist.options.length; j++) { // is our symbol (and locale) in list?
+     if (document.f0.nvcurrencylist.options[j].value==curstr[1]+(curstr[2]||"")) {
+      document.f0.nvcurrencylist.options[j].selected=true;
+      mcvfstringsym=curstr[1]; // remember symbol
+      break;
+      }
+     }
+    if (!mcvfstringsym) continue;
+    }
+   if (vfcategories[i].indexOf(ccategory)>=0) { // in current category
+    newcategory=ccategory;
+    }
+   else { // return first
+    var matcha=vfcategories[i].match(/:([^:]+):/);
+    newcategory=matcha[1];
+    set_option_selected("nvclist", newcategory);
+    newcategory=":"+newcategory+":"; // form used for indexing
+    }
+   break;
+   }
+  }
+ if (!newcategory) { // no match - custom
+  document.f0.nvflist.style.display="none";
+  document.f0.nvcurrencylist.style.display="none";
+  document.f0.numbercustomformat.style.display="inline";
+  document.f0.numbercustomformat.value=cvfstring;
+  document.f0.numbersvalueformat.value=cvfstring;
+  document.f0.nvclist.options[document.f0.nvclist.options.length-1].selected=true; // set last one
+  return;
+  }
+ else {
+  document.f0.nvflist.style.display="inline";
+  document.f0.numbercustomformat.style.display="none";
+  if (newcategory==":"+formatjsstrings["Currency"]+":") {
+   document.f0.nvcurrencylist.style.display="inline";
+   }
+  else {
+   document.f0.nvcurrencylist.style.display="none";
+   }
+  }
+ ccategory=newcategory;
+ document.f0.nvflist.options.length=0; // reset drop down
+ for (var i=0; i<vfnames.length; i++) { // go through each to create
+  if (vfcategories[i].indexOf(ccategory)<0) continue; // only show this category
+  document.f0.nvflist.options[document.f0.nvflist.options.length]=new Option(vfnames[i],i); // value is index in arrays
+  }
+ if (ccategory==":"+formatjsstrings["Currency"]+":") update_explicit_currency();
+ if (!ccvfo || !ccvfo.valueformat) {
+  set_option_selected_indirect("nvflist", vfstrings, "default");
+  document.f0.numbersvalueformat.value = "default";
+  }
+ else {
+  set_option_selected_indirect("nvflist", vfstrings, mcvfstring); //ccvfo.valueformat);
+  document.f0.numbersvalueformat.value = ccvfo.valueformat;
+  }
+}
+
+function set_controls_numbers_newcategory() { // special routine for new number format category (called from control "nvclist")
+ var ccvfo=document.f0.numbersedefault.checked ? sheetdefaults.parsed.ntf : sheetparsedattribs.numbers;
+ var cvfstring=(ccvfo && ccvfo.valueformat) ? ccvfo.valueformat : "default"; // current string value
+ // handle custom
+ if (document.f0.nvclist.selectedIndex==document.f0.nvclist.options.length-1) { // last one is always "custom"
+  document.f0.nvflist.style.display="none";
+  document.f0.nvcurrencylist.style.display="none";
+  document.f0.numbercustomformat.style.display="inline";
+  document.f0.numbercustomformat.value=cvfstring;
+  document.f0.numbersvalueformat.value=cvfstring;
+  display_controls_numbers(); // update display
+  document.f0.nvflist.blur();
+  nvclistfocus=false;
+  return;
+  }
+ else {
+  document.f0.nvflist.style.display="inline";
+  document.f0.numbercustomformat.style.display="none";
+  if (document.f0.nvclist.options[document.f0.nvclist.selectedIndex].value==formatjsstrings["Currency"]) {
+   document.f0.nvcurrencylist.style.display="inline";
+   }
+  else {
+   document.f0.nvcurrencylist.style.display="none";
+   }
+  }
+ // find match for existing format string on current category or else load another
+ var ccategory=":"+document.f0.nvclist.options[document.f0.nvclist.selectedIndex].value+":"; // category being displayed
+ document.f0.nvflist.options.length=0; // reset drop down
+ var found1=false;
+ for (var i=0; i<vfnames.length; i++) { // go through each to create
+  if (vfcategories[i].indexOf(ccategory)<0) continue; // only show this category
+  document.f0.nvflist.options[document.f0.nvflist.options.length]=new Option(vfnames[i],i); // value is index in arrays
+  if (vfstrings[i]==cvfstring) {
+   document.f0.nvflist.options[document.f0.nvflist.options.length-1].selected=true;
+   found1=true;
+   }
+  }
+ if (!found1) { // none selected
+  document.f0.nvflist.options[0].selected=true; // use first
+  }
+ // setup with currently selected value
+ document.f0.numbersvalueformat.value = vfstrings[document.f0.nvflist.options[document.f0.nvflist.selectedIndex].value];
+ if (ccategory==":"+formatjsstrings["Currency"]+":") update_explicit_currency();
+ display_controls_numbers(); // update display
+ document.f0.nvflist.blur();
+ nvclistfocus=false;
+}
+
+function display_controls_numbers() {
+ if (document.f0.numbersalign[0].checked) set_default_style("fpnumbers", "ntf", "textAlign", "right");
+ else if (document.f0.numbersalign[1].checked) set_styles_id("fpnumbers", ["textAlign:left"]);
+ else if (document.f0.numbersalign[2].checked) set_styles_id("fpnumbers", ["textAlign:center"]);
+ else if (document.f0.numbersalign[3].checked) set_styles_id("fpnumbers", ["textAlign:right"]);
+ if (document.f0.nvclist.selectedIndex==document.f0.nvclist.options.length-1 || document.f0.nvflist.selectedIndex<0) { // custom
+  for (var i=0; i<vfcategories.length; i++) { // find custom sample
+   if (vfcategories[i].indexOf(":"+document.f0.nvclist.options[document.f0.nvclist.options.length-1].value+":")>=0) {
+    set_text("fpnumbers", vfsamples[i]); // show custom sample message
+    }
+   }
+  }
+ else { // show sample
+  var inum=document.f0.nvflist.options[document.f0.nvflist.selectedIndex].value;
+  var samplestr=vfsamples[inum];
+  if (document.f0.nvclist.options[document.f0.nvclist.selectedIndex].value==formatjsstrings["Currency"]) { // handle Currency
+   var csym=document.f0.nvcurrencylist.options[document.f0.nvcurrencylist.selectedIndex].value;
+   var csymparts=csym.match(/^([^-]+)(-.*){0,1}$/); // remove locale if present
+   csym=csymparts[1].replace(/\$/g,"$$$$"); // $ is an escape in replace, so be careful
+   samplestr = samplestr.replace(/\[\?\$\]/g, csym);
+   }
+  set_text("fpnumbers", samplestr);
+  }
+ document.f0.numbersvalueformat.value = vfstrings[inum];
+}
+
+// Text: alignment is explicit for cell (any type of value) or default text alignment
+//       plus value format type (plain, html, wiki versions)
+
+function parse_text(ccf, ctvf, ccfo) {
+ ccfo.textAlign=(ccf && sheetcommon.cellformat && sheetcommon.cellformat[ccf]) ? sheetcommon.cellformat[ccf] : "";
+ ccfo.valueformat=(ctvf && sheetcommon.valueformat && sheetcommon.valueformat[ctvf]) ? sheetcommon.valueformat[ctvf] : "";
+ ccfo.valueformat=ccfo.valueformat.replace(/\\c/g, ":");
+}
+
+function set_controls_text(ccfo) {
+ if (!ccfo || !ccfo.textAlign) {
+  set_radio_checked("textalign", "default");
+  }
+ else {
+  set_radio_checked("textalign", ccfo.textAlign);
+  }
+ if (!ccfo || !ccfo.valueformat) {
+  set_option_selected("textvalueformat", "default");
+  }
+ else {
+  set_option_selected("textvalueformat", ccfo.valueformat);
+  }
+}
+
+function display_controls_text() {
+ if (document.f0.textalign[0].checked) set_default_style("fptext", "tf", "textAlign", "left");
+ else if (document.f0.textalign[1].checked) set_styles_id("fptext", ["textAlign:left"]);
+ else if (document.f0.textalign[2].checked) set_styles_id("fptext", ["textAlign:center"]);
+ else if (document.f0.textalign[3].checked) set_styles_id("fptext", ["textAlign:right"]);
+ document.f0.textvalueformat.blur(); // make sure not selected - Firefox grabs later arrows...
+ set_text("fptext", tvfsamples[document.f0.textvalueformat.selectedIndex]);
+}
+
+// Font: bold normal small 'Courier New',Courier,monospace; * for default
+
+function parse_font(cfont, cfonto) {
+ var fontstr=cfont ? (sheetcommon["font"][cfont] || "* * *") : "* * *";
+ if (fontstr.match(/^\*/)) { // style
+  cfonto.fontWeight="*";
+  cfonto.fontStyle="*";
+  }
+ else {
+  var fontbi = fontstr.match(/^(\S+)\s+(\S+)/);
+  cfonto.fontWeight=fontbi[2];
+  cfonto.fontStyle=fontbi[1];
+  }
+ if (fontstr.match(/.+\*.+/)) { // size
+  cfonto.fontSize="*";
+  }
+ else {
+  var fontsz=fontstr.match(/^(\*|\S+\s+\S+)\s+(\S+) /);
+  cfonto.fontSize=fontsz[2];
+  }
+ if (fontstr.match(/\*$/)) { // family
+  cfonto.fontFamily="*";
+  }
+ else {
+  var fontfam=fontstr.match(/^(\*|\S+\s+\S+)\s+\S+\s+(.+)$/);
+  cfonto.fontFamily=fontfam[2];
+  }
+}
+
+function set_controls_font(cfonto) {
+ if (!cfonto || !cfonto.fontStyle || cfonto.fontStyle=="*") { // style
+  set_properties_name(["fontdefault"],"checked",true);
+  set_properties_name(["fontbold","fontitalic"],"checked",false);
+  }
+ else {
+  set_properties_name(["fontdefault"],"checked",false);
+  set_properties_name(["fontitalic"],"checked",cfonto.fontStyle.toLowerCase()=="italic");
+  set_properties_name(["fontbold"],"checked",cfonto.fontWeight.toLowerCase()=="bold");
+  }
+ if (!cfonto || !cfonto.fontSize || cfonto.fontSize=="*") { // size
+  set_option_selected("fontsize", "default");
+  }
+ else {
+  set_option_selected("fontsize", cfonto.fontSize);
+  }
+ if (!cfonto || !cfonto.fontFamily || cfonto.fontFamily=="*") { // family
+  set_option_selected("fontfamily", "default");
+  }
+ else {
+  set_option_selected("fontfamily", cfonto.fontFamily);
+  }
+}
+
+function display_controls_font() {
+ if (document.f0.fontdefault.checked) { // use default weight/style
+  set_default_style("fpfonts","font","fontWeight","normal");
+  set_default_style("fpfonts","font","fontStyle","normal");
+  }
+ else {
+  if (document.f0.fontbold.checked) set_styles_id("fpfonts", ["fontWeight:bold"]);
+  else set_styles_id("fpfonts", ["fontWeight:normal"]);
+  if (document.f0.fontitalic.checked) set_styles_id("fpfonts", ["fontStyle:italic"]);
+  else set_styles_id("fpfonts", ["fontStyle:normal"]);
+  }
+ if (document.f0.fontsize.options[document.f0.fontsize.selectedIndex].value=="default") { // size
+  set_default_style("fpfonts","font","fontSize","small");
+  }
+ else {
+  set_styles_id("fpfonts", ["fontSize:"+document.f0.fontsize.options[document.f0.fontsize.selectedIndex].value]);
+  }
+ if (document.f0.fontfamily.options[document.f0.fontfamily.selectedIndex].value=="default") { // family
+  set_default_style("fpfonts","font","fontFamily","Verdana,Arial,Helvetica,sans-serif");
+  }
+ else {
+  set_styles_id("fpfonts", ["fontFamily:"+document.f0.fontfamily.options[document.f0.fontfamily.selectedIndex].value]);
+  }
+}
+
+// Colors: color and bgcolor (cell and sheet default) are RGB(r,g,b) values
+
+function parse_colors(ccolor, cbgcolor, ccoloro) {
+ ccoloro.color=ccolor ? (sheetcommon["color"][ccolor] || "") : "";
+ ccoloro.backgroundColor=cbgcolor ? (sheetcommon["color"][cbgcolor] || "") : "";
+}
+
+function set_controls_colors(ccoloro) {
+ if (!ccoloro || !ccoloro.color) {
+  set_styles(["textcolorbox"], "backgroundColor", "");
+  set_styles(["textcolorbox"], "backgroundImage", "url(?getfile=hatchbg)");
+  document.f0.edittextcolor.value="";
+  }
+ else {
+  set_styles(["textcolorbox"], "backgroundColor", ccoloro.color);
+  set_styles(["textcolorbox"], "backgroundImage", "");
+  document.f0.edittextcolor.value=ccoloro.color;
+  }
+ if (!ccoloro || !ccoloro.backgroundColor) {
+  set_styles(["bgcolorbox"], "backgroundColor", "");
+  set_styles(["bgcolorbox"], "backgroundImage", "url(?getfile=hatchbg)");
+  document.f0.editbackgroundcolor.value="";
+  }
+ else {
+  set_styles(["bgcolorbox"], "backgroundColor", ccoloro.backgroundColor);
+  set_styles(["bgcolorbox"], "backgroundImage", "");
+  document.f0.editbackgroundcolor.value=ccoloro.backgroundColor;
+  }
+}
+
+function display_controls_colors() {
+ var tcb=document.getElementById("textcolorbox");
+ if (tcb.backgroundImage) { // default
+  set_default_style("fpcolors","color","color","black");  
+  }
+ else {
+  set_styles_id("fpcolors", ["color:"+tcb.style.backgroundColor]);
+  }
+ var bgcb=document.getElementById("bgcolorbox");
+ if (bgcb.backgroundImage) { // default
+  set_default_style("fpcolors","color","backgroundColor","white");  
+  }
+ else {
+  set_styles_id("fpcolors", ["backgroundColor:"+bgcb.style.backgroundColor]);
+  }
+}
+
+// Borders: 4 sides, thickness (1pt), style (solid), and color (RGB(r,g,b) values)
+
+function parse_borders(cborders, cbordero) {
+ var bstr, bparts;
+ for (var i=1;i<=4;i++) {
+  bstr = cborders[i-1] ? (sheetcommon["border"][cborders[i-1]] || "") : "";
+  bparts=bstr.match(/(\S+)\s+(\S+)\s+(\S.+)/);
+  cbordero[i+"width"]=bparts?(bparts[1]||""):"";
+  cbordero[i+"style"]=bparts?(bparts[2]||""):"";
+  cbordero[i+"color"]=bparts?(bparts[3]||""):"";
+  }
+}
+
+function set_controls_borders(cbordero) {
+ for (var i=1;i<=4;i++) {
+  if (!cbordero || !cbordero[i+"width"]) {
+   set_styles(["border"+i+"colorbox"], "backgroundColor", "rgb(0,0,0)");
+   set_option_selected("border"+i+"width", "1px");
+   set_option_selected("border"+i+"style", "solid");
+   document.f0["showborder"+i].checked=false;
+   }
+  else {
+   set_styles(["border"+i+"colorbox"], "backgroundColor", cbordero[i+"color"]);
+   set_option_selected("border"+i+"width", cbordero[i+"width"]);
+   set_option_selected("border"+i+"style", cbordero[i+"style"]);
+   document.f0["showborder"+i].checked=true;
+   }
+  }
+
+ // mirror first border on "all the same":
+
+ if (!cbordero || !cbordero["1width"]) {
+  set_styles(["border0colorbox"], "backgroundColor", "rgb(0,0,0)");
+  set_option_selected("border0width", "1px");
+  set_option_selected("border0style", "solid");
+  document.f0["showborder0"].checked=false;
+  }
+ else {
+  set_styles(["border0colorbox"], "backgroundColor", cbordero["1color"]);
+  set_option_selected("border0width", cbordero["1width"]);
+  set_option_selected("border0style", cbordero["1style"]);
+  document.f0["showborder0"].checked=true;
+  }
+ }
+
+var bordername=["", "borderTop:", "borderRight:", "borderBottom:", "borderLeft:"];
+
+function display_controls_borders() {
+ if (document.f0.bordersseparately.checked==false) { // copy border0 to others
+  for (var i=1;i<=4;i++) {
+   document.f0["showborder"+i].checked=document.f0["showborder0"].checked;
+   document.f0["border"+i+"width"].selectedIndex=document.f0["border0width"].selectedIndex;
+   document.f0["border"+i+"style"].selectedIndex=document.f0["border0style"].selectedIndex;
+   document.getElementById("border"+i+"colorbox").style.backgroundColor=document.getElementById("border0colorbox").style.backgroundColor;
+   document.f0["editborder"+i].value=document.f0["editborder0"].value
+   }
+  if (document.f0["showborder0"].checked) {
+   set_styles_id("showbtext0", ["fontWeight:bold"]);
+   set_styles(["bhead0t", "bhead0c", "bhead0s"], "color", "#006600");
+   set_styles(["border0colorbox"], "backgroundImage", "");
+   }
+  else {
+   set_styles_id("showbtext0", ["fontWeight:normal"]);
+   set_styles(["bhead0t", "bhead0c", "bhead0s"], "color", "#99CC99");
+   set_styles(["border0colorbox"], "backgroundImage", "url(?getfile=hatchbg)");
+   }
+  }
+ var bstr="";
+ for (var i=1;i<=4;i++) {
+  if (document.f0["showborder"+i].checked) {
+   bstr=document.f0["border"+i+"width"].options[document.f0["border"+i+"width"].selectedIndex].value+" ";
+   bstr+=document.f0["border"+i+"style"].options[document.f0["border"+i+"style"].selectedIndex].value+" ";
+   bstr+=document.getElementById("border"+i+"colorbox").style.backgroundColor;
+   document.f0["editborder"+i].value=bstr;
+   set_styles_id("fpborders", [bordername[i]+bstr]);
+   set_styles_id("showbtext"+i, ["fontWeight:bold"]);
+   }
+  else {
+   document.f0["editborder"+i].value="";
+   set_styles_id("fpborders", [bordername[i]+"none"]);
+   set_styles_id("showbtext"+i, ["fontWeight:normal"]);
+   }
+  }
+ update_border_rows();
+ }
+
+function update_border_rows() {
+ if (document.f0.bordersseparately.checked) {
+  set_display(["bordertable1"], "none");
+  set_display(["bordertable4"], "block");
+  }
+ else {
+  set_display(["bordertable4"], "none");
+  set_display(["bordertable1"], "block");
+  }
+ }
+
+// Layout: vertical-align and padding (cell and sheet default) in the form of:
+//    padding:top right bottom left;vertical-align:which;
+
+function parse_layout(clayout, clayouto) {
+ clayouto.full=clayout ? (sheetcommon["layout"][clayout] || "") : "";
+ clayouto.full=clayouto.full.replace(/\\c/g, ":");
+}
+
+function set_controls_layout(clayouto) {
+ var layoutstr=formatjsstrings["defaultlayout"];
+ if (!clayouto || !clayouto.full) { // if none set, show default up a level
+  if (!document.f0.layoutdefault.checked) { // not setting sheet default
+   if (sheetdefaults.parsed.layout.full) { // explicit sheet default exists
+    layoutstr=sheetdefaults.parsed.layout.full;
+    }
+   }
+  set_radio_checked("explicitlayout", "no"); // set to use default and gray all out
+  }
+ else {
+  layoutstr=clayouto.full;
+  set_radio_checked("explicitlayout", "yes");
+  }
+ re = /^padding:\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+);vertical-align:\s*(\S+);/;
+ a = re.exec(layoutstr);
+ set_option_selected("layoutpaddingtop", RegExp.$1);
+ set_option_selected("layoutpaddingright", RegExp.$2);
+ set_option_selected("layoutpaddingbottom", RegExp.$3);
+ set_option_selected("layoutpaddingleft", RegExp.$4);
+ set_radio_checked("verticalalign", RegExp.$5);
+}
+
+function display_controls_layout() {
+ var layoutstr=formatjsstrings["defaultlayout"];
+ if (!document.f0.layoutdefault.checked) { // not setting sheet default
+  if (sheetdefaults.parsed.layout.full) { // explicit sheet default exists
+   layoutstr=sheetdefaults.parsed.layout.full;
+   }
+  }
+ re = /^padding:\s*(\S+)\s+(\S+)\s+(\S+)\s+(\S+);vertical-align:\s*(\S+);/;
+ a = re.exec(layoutstr);
+ var vertalign=RegExp.$5; // init with that as sample default
+ var padt=RegExp.$1;
+ var padr=RegExp.$2;
+ var padb=RegExp.$3;
+ var padl=RegExp.$4;
+ if (document.f0.explicitlayout[0].checked) { // use default layout
+  set_styles_id("lusedefault", ["fontWeight:bold"]);
+  set_styles_id("lsetexplicitly", ["fontWeight:normal"]);
+  set_styles(["lalignment", "lpadding"], "color", "#99CC99");
+  }
+ else { // show explicit setting
+  set_styles_id("lusedefault", ["fontWeight:normal"]);
+  set_styles_id("lsetexplicitly", ["fontWeight:bold"]);
+  set_styles(["lalignment", "lpadding"], "color", "#006600");
+  if (document.f0.verticalalign[0].checked) vertalign="top";
+  if (document.f0.verticalalign[1].checked) vertalign="middle";
+  if (document.f0.verticalalign[2].checked) vertalign="bottom";
+  padt=document.f0.layoutpaddingtop.options[document.f0.layoutpaddingtop.selectedIndex].value;
+  padr=document.f0.layoutpaddingright.options[document.f0.layoutpaddingright.selectedIndex].value;
+  padb=document.f0.layoutpaddingbottom.options[document.f0.layoutpaddingbottom.selectedIndex].value;
+  padl=document.f0.layoutpaddingleft.options[document.f0.layoutpaddingleft.selectedIndex].value;
+  }
+ var padall="padding:"+padt+" "+padr+" "+padb+" "+padl;
+ set_styles_id("layoutsample1", [padall, "verticalAlign:"+vertalign]);
+ set_styles_id("layoutsample2", [padall, "verticalAlign:"+vertalign]);
+}
+
+// Columns:
+
+function parse_columns(ccol, ccols, ccolo) {
+ if (ccol) {
+  ccolo.width=ccol.w;
+  ccolo.hide=ccol.hide;
+  }
+ else if (ccols) {
+  ccolo.width = ccols;
+  ccolo.hide = "";
+  }
+ }
+
+function set_controls_columns(ccolo) {
+ if (!ccolo || !ccolo.width) {
+  set_radio_checked("colwidthtype", "default");
+  document.f0.colwidthvalue.value="";
+  document.f0.colwidthpercent.checked=false;
+  }
+ else {
+  if (ccolo.width=="auto") {
+   set_radio_checked("colwidthtype", "auto");
+   document.f0.colwidthvalue.value="";
+   document.f0.colwidthpercent.checked=false;
+   }
+  else if (ccolo.width.match(/(\d+)/)) {
+   set_radio_checked("colwidthtype", "explicit");
+   var colparts=ccolo.width.match(/(\d+)(%?)/);
+   document.f0.colwidthvalue.value=colparts ? colparts[1] : "";
+   if (colparts && colparts[2]) {
+    document.f0.colwidthpercent.checked=true;
+    }
+   else {
+    document.f0.colwidthpercent.checked=false;
+    }
+   }
+  }
+ if (!ccolo || !ccolo.hide || ccolo.hide!="yes") {
+  document.f0.colhidevalue.checked=false;
+  }
+ else {
+  document.f0.colhidevalue.checked=true;
+  }
+ }
+
+var columnchanged; // if non-blank, colname of column that was previewed
+
+function display_controls_columns() {
+ columnchanged = sheetparsedattribs.columns.colname; // remember to undo
+ if (document.f0.colwidthtype[0].checked) { // default
+  document.f0.colwidthvalue.value="";
+  document.f0.colwidthpercent.checked=false;
+  set_styles_id("coldraghandle", ["visibility:hidden"]);
+  var defwidth=sheetdefaults.parsed.columns.width;
+  if (!defwidth) defwidth="80";
+  if (!defwidth.match(/%/)) defwidth+="px";
+  document.getElementById("c_"+sheetparsedattribs.columns.colname).width=defwidth;
+  }
+ else if (document.f0.colwidthtype[1].checked) { // auto
+  document.f0.colwidthvalue.value="";
+  document.f0.colwidthpercent.checked=false;
+  set_styles_id("coldraghandle", ["visibility:hidden"]);
+  document.getElementById("c_"+sheetparsedattribs.columns.colname).width="";
+  }
+ else { // explicit
+  set_styles_id("coldraghandle", ["visibility:visible"]);
+  var widthval=document.f0.colwidthvalue.value.replace(/\D/,"");
+  document.f0.colwidthvalue.value=widthval;
+  col_set_slider(document.f0.colwidthvalue.value * (document.f0.colwidthpercent.checked ? 5 : 1));
+  document.getElementById("c_"+sheetparsedattribs.columns.colname).width=document.f0.colwidthvalue.value+(document.f0.colwidthpercent.checked ? "%" : "");
+  }
+ }
+
+var coldragnode, coldeltaX;
+
+function begincoldrag(e) {
+ if (!e) e=window.event;
+ coldragnode=document.getElementById("coldraghandle");
+ coldeltaX=e.clientX - parseInt(coldragnode.style.left);
+ document.onmousemove=function(e) {coldragmove(e);};
+ document.onmouseup=function(e) {coldragend(e);return false;};
+}
+
+function coldragmove(e) {
+ if (!e) e=window.event;
+ coldragnode=document.getElementById("coldraghandle");
+ var newleft = e.clientX - coldeltaX;
+ if (newleft<-500) newleft = -500;
+ if (newleft>=0) newleft = -1;
+ coldragnode.style.left = newleft + "px";
+ var widthval;
+ if (document.f0.colwidthpercent.checked) {
+  widthval = Math.floor((newleft+501)/5);
+  document.f0.colwidthvalue.value = widthval;
+  widthval += "%";
+  }
+ else {
+  widthval = newleft+501;
+  document.f0.colwidthvalue.value = widthval;
+  widthval += "px";
+  }
+ document.getElementById("c_"+rcColname(rcColnum(ecell))).width=widthval;
+}
+
+function coldragend(e) {
+ document.onmousemove=null;
+ document.onmouseup=null;
+}
+
+function col_set_slider(pos) {
+ var newleft=Math.floor(pos);
+ if (newleft<1) newleft = 1;
+ if (newleft>500) newleft = 500;
+ document.getElementById("coldraghandle").style.left=(newleft-501) + "px";
+}
+
+// Rows: hidden attribute
+
+function parse_rows(crow, crowo) {
+ crowo.hide=crow ? crow.hide : "";
+}
+
+function set_controls_rows(crowo) {
+ if (!crowo || crowo.hide!="yes") {
+  document.f0.rowhidevalue.checked=false;
+  }
+ else {
+  document.f0.rowhidevalue.checked=true;
+  }
+}
+
+function display_controls_rows() {
+ if (document.f0.rowhidevalue.checked) set_text("fprows", formatjsstrings["rowsamplehidden"]);
+ else set_text("fprows", formatjsstrings["rowsamplenormal"]);
+}
+
+// Misc: cell CSS class override and additional style info
+
+function parse_misc(ccssc, ccsss, cmod, ccsso) {
+ ccsso.cssc=ccssc || "";
+ ccsso.csss=ccsss || "";
+ ccsso.cmod=cmod || "";
+}
+
+function set_controls_misc(ccsso) {
+ if (!ccsso || !ccsso.cssc) {
+  document.f0.miscclassvalue.value="";
+  }
+ else {
+  document.f0.miscclassvalue.value=ccsso.cssc;
+  }
+ if (!ccsso || !ccsso.csss) {
+  document.f0.miscstylevalue.value="";
+  }
+ else {
+  document.f0.miscstylevalue.value=ccsso.csss;
+  }
+ if (!ccsso || ccsso.cmod!="y") {
+  document.f0.miscmodvalue.checked=false;
+  }
+ else {
+  document.f0.miscmodvalue.checked=true;
+  }
+}
+
+function display_controls_misc() {
+ if (document.f0.miscstylevalue.value)
+  set_text("fpmisc", '<div style="'+document.f0.miscstylevalue.value+'">'+formatjsstrings["miscsample"]+'</div>');
+ else
+  set_text("fpmisc", formatjsstrings["miscsample"]);
+}
+
+//
+// Routine to set format styles applying global defaults
+//
+
+function set_default_style(id,gname,aname,gdefault) {
+ var val=sheetdefaults.parsed[gname][aname];
+ val = (!val || val=="*" || val=="default") ? gdefault : val;
+ set_styles_id(id,[aname+":"+val]);
+ }
+
+//
+// Routine to update the format preview given the user checkbox/chooser/etc settings
+//
+
+function update_formatpreview() {
+ switch (currentconfig) {
+  case "numbers":
+   if (document.f0.numbersedefault.checked) { // show global sheet defaults
+    set_controls_numbers(sheetdefaults.parsed.ntf);
+    }
+   else {
+    set_controls_numbers(sheetparsedattribs.numbers);
+    }
+   display_controls_numbers();
+   break;
+
+  case "text":
+   if (document.f0.textedefault.checked) {
+    set_controls_text(sheetdefaults.parsed.tf);
+    }
+   else {
+    set_controls_text(sheetparsedattribs.text);
+    }
+   display_controls_text();
+   break;
+
+  case "fonts":
+   if (document.f0.fontedefault.checked) {
+    set_controls_font(sheetdefaults.parsed.font);
+    }
+   else {
+    set_controls_font(sheetparsedattribs.font);
+    }
+   display_controls_font();
+   break;
+
+  case "colors":
+   if (document.f0.colorsedefault.checked) {
+    set_controls_colors(sheetdefaults.parsed.color);
+    }
+   else {
+    set_controls_colors(sheetparsedattribs.colors);
+    }
+   display_controls_colors();
+   break;
+
+  case "borders":
+   set_controls_borders(sheetparsedattribs.borders);
+   display_controls_borders();
+   break;
+
+  case "layout":
+   if (document.f0.layoutdefault.checked) {
+    set_controls_layout(sheetdefaults.parsed.layout);
+    }
+   else {
+    set_controls_layout(sheetparsedattribs.layout);
+    }
+   display_controls_layout();
+   break;
+
+  case "columns":
+   if (document.f0.columnsedefault.checked) {
+    set_controls_columns(sheetdefaults.parsed.columns);
+    set_styles(["colvistext"], "color", "#99CC99");
+    document.f0.colhidevalue.disabled=true;
+    }
+   else {
+    set_controls_columns(sheetparsedattribs.columns);
+    set_styles(["colvistext"], "color", "#006600");
+    document.f0.colhidevalue.disabled=false;
+    }
+   display_controls_columns();
+   break;
+
+  case "rows":
+   set_controls_rows(sheetparsedattribs.rows);
+   display_controls_rows();
+   break;
+
+  case "misc":
+   set_controls_misc(sheetparsedattribs.misc);
+   display_controls_misc();
+   break;
+
+  }
+ }
+
+//
+// Routine to process each keystroke
+//
+
+var cwvedit; // true if editing column width
+var nvclistfocus=false; // whether nvclist has focus - ignore keys there
+
+function process_typed_char (c) {
+ if (nvclistfocus) return true; // get around Firefox funny
+ var c1, r1, cr2, cr3;
+ if (whichchooser) { // typing into color chooser
+  if (c=="[enter]") {
+   ccolor(document.f0.explicitcolor.value); // choose text value
+   return false;
+   }
+  if (c=="[esc]") {
+   hidecolorchooser(); // cancel
+   return false;
+   }
+  return true; // let keys through
+  }
+ if (cwvedit) { // editing column width value
+  if (c=="[enter]") {
+   document.f0.colwidthvalue.blur();
+   cwvedit=false;
+   return false;
+   }
+  return true;
+  }
+ if (c=="[esc]") { // cancel range
+  if (highlighton) {
+   cancel_range();
+   return false; // and stop processing char
+   }
+  }
+ else if (c.slice(0,2)=="[a") {
+  if (highlighton) { // doing highlight
+   c1=rcColnum(highlightpos);
+   r1=rcRownum(highlightpos);
+   if (c=="[aleft]") c1--;
+   if (c=="[aright]") c1=c1+1;
+   if (c=="[aup]") r1--;
+   if (c=="[adown]") r1=r1+1;
+   cr2 = rcColname(c1)+r1;
+   highlightpos = highlight_block(ecell, cr2, "#DDFFDD");
+   set_editcoords(ecell+":"+highlightpos);
+   return false;
+   }
+  c1=rcColnum(ecell); // move in the arrow direction
+  r1=rcRownum(ecell);
+  if (c=="[aleft]") c1--;
+  if (c=="[aright]") c1=c1+sheetcolspan[ecell];
+  if (c=="[aup]") r1--;
+  if (c=="[adown]") r1=r1+sheetrowspan[ecell];
+  cr2 = rcColname(c1)+r1;
+  ecell = move_cursor(ecell, cr2, true);
+  set_editcoords(ecell);
+  check_draglook();
+  return false;
+  }
+ else if (c.slice(0,3)=="[pg") {
+  do_pageupdn(c);
+  return false;
+  }
+ else if (c==":") {
+  range_button();
+  return false;
+  }
+
+ check_draglook();
+
+ return false;
+ }
+
+//
+// Processes the string created by the server with sheet information
+//
+
+function parse_sheet(str) {
+ sheetupdated = {}; // remember which we got this time
+ sheeterror=""; // start with no errors
+ var cells = str.split("\n");
+ for (var i=0;i<cells.length;i++) { // each line is coord:displayvalue:align:colspan:rowspan:skip:format-attribs
+  var parts = cells[i].split(":",7);
+  if (!parts[0]) continue; // blank line
+  var cr = parts[0];
+  if (cr=="error") { // information about errors
+   sheeterror=parts[1];
+   continue;
+   }
+  switch (cr) {
+   case "font":
+   case "color":
+   case "layout":
+   case "border":
+   case "cellformat":
+   case "valueformat":
+    if (!sheetcommon[cr]) sheetcommon[cr]=[];
+    sheetcommon[cr][parts[1]]=parts[2]; // save full strings used in common
+    break;
+   case "col":
+    if (!sheetcols[parts[1]]) sheetcols[parts[1]]={};
+    sheetcols[parts[1]][parts[2]]=parts[3];
+    break;
+   case "row":
+    if (!sheetrows[parts[1]]) sheetrows[parts[1]]={};
+    sheetrows[parts[1]][parts[2]]=parts[3];
+    break;
+   case "sheet":
+    sheetdefaults[parts[1]]=parts[2];
+    break;
+   default: // normal cell attribs
+    var col=rcColnum(cr);
+    var row=rcRownum(cr);
+    if (col>sheetlastcol || row>sheetlastrow) continue; // don't extend
+    var value = parts[1];
+    sheetvals[cr] = decode_field(value,"&nbsp;");
+    sheetalign[cr] = parts[2];
+    sheetcolspan[cr] = parts[3]-0;//force to number
+    sheetrowspan[cr] = parts[4]-0;
+    value = parts[5];
+    if (!value) value=cr; // default is this cell
+    sheetskip[cr] = value;
+    sheetattribs[cr] = parts[6]; // save unparsed cell format attribs
+    sheetupdated[cr]=1;
+    break;
+   }
+  }
+ parse_sheet_defaults();
+
+ return;
+ }
+
+//
+// Routine to handle clicks on a cell
+//
+
+function rc0(cr1) {
+ if (highlighton) { // doing highlight
+  highlightpos = highlight_block(ecell, cr1, "#DDFFDD");
+  set_editcoords(ecell+":"+highlightpos);
+  return;
+  }
+ ecell = move_cursor(ecell, cr1, true);
+ pointcoord="";
+ set_editcoords(ecell);
+ return false;
+ }
+
+//
+// range_button
+//
+
+var prerangeconfig;
+
+function range_button() {
+ prerangeconfig = editconfig;
+ start_highlight();
+}
+
+function cancel_range() {
+ end_highlight();
+}
+
+function set_range(epval) {
+ document.f0.editcoords.value=ecell+":"+highlightpos;
+ document.f0.editparts.value=epval;
+}
+
+//
+// Routine to set the various formatmode hidden values for use by the next browser page
+//
+
+function set_formatmode(c) {
+ document.ftabs.formatmode.value=c;
+ document.f0.formatmode.value=c;
+ document.fsl.formatmode.value=c;
+ currentconfig=c;
+ }
+
+//
+// Handler for Save Number Settings to copy custom text if necessary and fill in custom currency
+//
+
+function check_custom_vf() {
+ if (document.f0.nvclist.selectedIndex==document.f0.nvclist.options.length-1) { // custom is always last
+  document.f0.numbersvalueformat.value=document.f0.numbercustomformat.value;
+  }
+ // if Currency, then put in explicit symbol
+ else if (document.f0.nvclist.options[document.f0.nvclist.selectedIndex].value==formatjsstrings["Currency"]) {
+  var csym="[$"+document.f0.nvcurrencylist.options[document.f0.nvcurrencylist.selectedIndex].value+"]";
+  csym=csym.replace(/\$/g,"$$$$"); // $ is an escape in replace, so be careful
+  document.f0.numbersvalueformat.value = document.f0.numbersvalueformat.value.replace(/\[\?\$\]/g, csym);
+  }
+ }
+
+//
+// Routine to update the currency format list when the explicit symbol is changed
+//
+
+function update_explicit_currency() {
+ var csym=document.f0.nvcurrencylist.options[document.f0.nvcurrencylist.selectedIndex].value;
+ var csymparts=csym.match(/^([^-]+)(-.*){0,1}$/); // remove locale if present
+ csym=csymparts[1].replace(/\$/g,"$$$$"); // $ is an escape in replace, so be careful
+ for (var i=0; i<document.f0.nvflist.length; i++) {
+  var formatstr=vfnames[document.f0.nvflist.options[i].value];
+  document.f0.nvflist.options[i].text=formatstr.replace(/\?/,csym);
+  }
+}
+
+</script>
+

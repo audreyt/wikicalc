@@ -1,0 +1,871 @@
+<script>
+
+// WKCjs.txt
+
+// (c) Copyright 2006 Software Garden, Inc.
+// All Rights Reserved.
+// Subject to Software License included with WKC.pm
+
+var val="";
+var ev1k; // remembers ev1's e.keyCode value
+var ev1w; // remembers ev1's e.which value
+
+var jsedit=false; // whether editing in cell using Javascript
+var veedit=false; // whether editing in input text box
+var vetedit=false; // whether editing in input text area
+var cmdedit=false; // whether doing /more or :range commands, with keystrokes so far
+var editconfig=1; // which things are showing
+var pointcoord=""; // cell being pointed to in special formula edits
+var ecell="A1"; // cell being edited
+var cursorhidden=false;
+var showinghelp=false; // whether help is showing
+var loading=false; // whether waiting for ajax request to finish
+var timeoutseconds=20; // time to wait for ajax to return
+var timeoutval; // used to cancel timeout checking
+
+// Information about the cells:
+var idlist = {}; // remembered element ID's to optimize out GetElementById calls
+var sheettype = {};
+var sheetvals = {};
+var sheetedit = {};
+var sheetalign = {};
+var sheetcolspan = {};
+var sheetrowspan = {};
+var sheetskip = {};
+var sheetclass = {};
+var sheetupdated = {};
+var sheeterror = ""; // error msg to display
+var sheetlastcol=0; // set on load
+var sheetlastrow=0; // set on load
+
+//
+// Helper routines to convert between A1 and RC (rownum/colnum) formats
+// If range, only does first coord
+//
+
+function rcColnum(rc) {
+ c = rc.toLowerCase()
+ re = /^([a-z])([a-z])?(\d+)/
+ a = re.exec(c)
+ cnum = RegExp.$1.charCodeAt(0) - 96
+ if (RegExp.$2)
+  cnum = 26 * cnum + RegExp.$2.charCodeAt(0) - 96
+ return cnum
+ }
+function rcRownum(rc) {
+ c = rc.toLowerCase()
+ re = /^([a-z])([a-z])?(\d+)/
+ re.exec(c)
+ return (RegExp.$3 - 0); // make sure a number
+ }
+function rcColname(c) {
+ colhigh = Math.floor((c - 1) / 26)
+ collow = (c - 1) % 26
+ rname = String.fromCharCode(collow + 65)
+ if (colhigh)
+  rname = String.fromCharCode(colhigh + 64) + rname
+ return rname
+}
+
+//
+// Routine to process onKeydown event
+//
+// Different browsers set the event argument differently
+// This routine (and ev2) have been set to do what seems
+// to work with a variety of browsers
+//
+// The result is to call process_typed_char with
+// a character or a string representing a special key
+// (such as "[aleft]" for left arrow).
+//
+
+function ev1(e) {
+ ev1k=e.keyCode;
+ ev1w=e.which;
+ ev1ch="";
+ if (ev1w==undefined) { // IE
+  switch (ev1k) {
+   case 33: ch="[pgup]"; break;
+   case 34: ch="[pgdn]"; break;
+   case 37: ch="[aleft]"; break;
+   case 38: ch="[aup]"; break;
+   case 39: ch="[aright]"; break;
+   case 40: ch="[adown]"; break;
+   case 13: ch="[enter]"; break;
+   case 8: ch="[backspace]"; break;
+   case 32: ch=" "; break;
+   case 27: ch="[esc]"; break;
+   case 46: ch="[del]"; break;
+   default:
+    if (ev1k<48 && !vetedit) return false; // ignore other special keys
+    return true;
+   }
+  if (veedit) return process_typed_char_ve(ch);
+  if (vetedit) { // multi-line
+   if (loading) return false;
+   return true;
+   }
+  return process_typed_char(ch); // do something with the keystroke (if false, stop processing key)
+  }
+ else { // not IE
+  return true; // wait for onKeypress to process
+  }
+ }
+
+//
+// Routine to process onKeypress event
+//
+
+function ev2(e) {
+ var chk=e.keyCode;
+ var chw=e.which;
+ var ch;
+ if (ev1w==undefined) { // IE
+  ch=String.fromCharCode(chk); // convert to a character (special chars handled at ev1)
+  }
+ else { // Not IE
+  switch (ev1k) {
+   case 33: ch="[pgup]"; break;
+   case 34: ch="[pgdn]"; break;
+   case 37: ch="[aleft]"; break;
+   case 38: ch="[aup]"; break;
+   case 39: ch="[aright]"; break;
+   case 40: ch="[adown]"; break;
+   case 13: ch="[enter]"; break;
+   case 32: ch=" "; break;
+   case 8: ch = "[backspace]"; break;
+   case 27: ch="[esc]"; break;
+   case 46: ch="[del]"; break;
+   default: 
+    if (ev1k<48) { // usually a special character
+     if (ev1k==ev1w && ev1k==chk && ev1k==chw) { // Test for Opera which sets these all the same here
+       if (chw<32) { // some control character (Opera doesn't give others a higher number like other browsers)
+         if (vetedit) return true;
+         ch="";
+         }
+       else ch=String.fromCharCode(chw);
+       }
+     else { // not Opera - set char to nothing
+      if (vetedit) return true;
+      ch="";
+      }
+     }
+    else { // normal character
+     if (chw==0) return true; // Firefox gives this on slash for some reason - ignore it
+     ch=String.fromCharCode(chw);
+     }
+    break;
+   }
+  }
+ if (veedit) return process_typed_char_ve(ch);
+ if (vetedit) { // multi-line
+  if (loading) return false;
+  return true;
+  }
+ return process_typed_char(ch); // do something with the keystroke and stop or continue depending upon return
+ }
+
+//
+// AJAX requestor
+//
+// Based on: http://developer.mozilla.org/en/docs/AJAX:Getting_Started, (c) 2005 Mozilla Foundation, MIT license
+// along with: http://www.xml.com/pub/a/2005/05/11/ajax-error.html (c) 2005 O'Reilly Media, Inc.
+//
+
+var http_request = false;
+var subtocall = function() {alert("No function set");}; // remembers routine to call on successful return
+
+function makeRequest(reqcontents, successroutine) { // Request contents, routine to call on success
+
+ http_request = false;
+
+ // Create a new XMLHTTP request object
+
+ if (window.XMLHttpRequest) { // Mozilla, Safari,...
+  http_request = new XMLHttpRequest();
+  if (http_request.overrideMimeType) {
+   http_request.overrideMimeType('text/xml');
+   }
+  }
+ else if (window.ActiveXObject) { // IE
+  try {
+   http_request = new ActiveXObject("Msxml2.XMLHTTP");
+   }
+  catch (e) {
+   try {
+    http_request = new ActiveXObject("Microsoft.XMLHTTP");
+    }
+   catch (e) {}
+   }
+  }
+ if (!http_request) {
+  alert('Giving up :( Cannot create an XMLHTTP instance');
+  return false;
+  }
+
+ // Make the actual request
+
+ http_request.onreadystatechange = alertContents;
+ subtocall = successroutine;
+ http_request.open('POST', document.URL, true);
+ http_request.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+ loading = true; // remember so we won't do much else
+ http_request.send(reqcontents);
+ timeoutval = window.setTimeout("ajaxtimeout();", 1000*timeoutseconds); // only give it this long
+ }
+
+//
+// This routine processes the status callbacks from the XMLHTTP request
+//
+// The data is assumed to be in a CDATA section immediately under the first <root> item.
+//
+
+function alertContents() {
+
+ if (http_request.readyState == 4) {
+  window.clearTimeout(timeoutval);
+  try {
+   if (http_request.status == 200) {
+    var xmldoc = http_request.responseXML;
+    var root_node = xmldoc.getElementsByTagName('root').item(0);
+    subtocall(root_node.firstChild.data);
+    }
+   else {
+    alert(jsstrings["ajaxerrstatus1"]+http_request.statusText+jsstrings["ajaxerrstatus2"]);
+    }
+   loading = false;
+   check_draglook();
+   }
+  catch (e) {
+    alert(jsstrings["ajaxerrnostatus"]);
+    loading = false;
+    check_draglook();
+   }
+  }
+ }
+
+//
+// This routine processes the timeout
+//
+
+function ajaxtimeout() {
+
+ http_request.abort();
+ alert(jsstrings["ajaxerrtimeout1"]+timeoutseconds+jsstrings["ajaxerrtimeout2"]);
+ check_draglook();
+ }
+
+//
+// This routine sets up arguments and does an AJAX request for getting text for an entity
+//
+// It takes the name of the text to retrieve and the id of the element to set innerHTML of
+//
+
+var savedresultidnode;
+
+function ajaxgetnamedtext_request(textname, resultid) {
+
+ savedresultidnode = document.getElementById(resultid);
+ if (!savedresultidnode) {
+  alert("Missing ID "+resultid+" -- text not retrieved.");
+  return;
+  }
+ savedresultidnode.innerHTML = jsstrings["loading"];
+ var reqcontents = "&ajaxgetnamedtext="+textname;
+ makeRequest(reqcontents, setnamedtext);
+ }
+
+function setnamedtext (str) { // function passed by ajaxgetnamedtext to makeRequest
+ savedresultidnode.innerHTML=str;
+ }
+
+//
+// Routine to move the cursor
+//
+// Returns new cursor position (may be different than one asked for because of merged cells)
+// Updates the valueedit values if "doupdate" is true
+//
+
+function move_cursor(oldc,newc,doupdate) {
+  var node, kids;
+  if (!oldc) oldc=ecell; // if not in a pointing operation
+  if (!cursorhidden) {
+   node=idlist[oldc];
+   if (node) {
+    kids=node.childNodes;
+    if (kids) {
+     kids[0].className = "cellnormal";
+     document.getElementById("cn_"+rcColname(rcColnum(oldc))).className="colname";
+     idlist["rn_"+rcRownum(oldc)].className="rowname";
+     cursorhidden=true;
+     }
+    }
+   }
+
+  var c = sheetskip[newc];
+  if (!c) c=oldc;
+
+  if (rcRownum(c)<=scrollrow) { // new position is hidden
+   scroll_to_row(rcRownum(c));
+   set_slider(scrollrow+1);
+   hide_cursor();
+   }
+
+  node=idlist[c];
+  kids=node.childNodes;
+  kids[0].className = "cellcursor";
+  document.getElementById("cn_"+rcColname(rcColnum(c))).className="selectedcolname";
+  idlist["rn_"+rcRownum(c)].className="selectedrowname";
+  cursorhidden=false;
+
+  if (doupdate) update_valueedits(c);
+
+  return c;
+}
+
+//
+// Routine to hide the cursor
+//
+
+function hide_cursor() {
+  if (cursorhidden) return;
+  node=idlist[ecell];
+  kids=node.childNodes;
+  kids[0].className = "cellnormal";
+  document.getElementById("cn_"+rcColname(rcColnum(ecell))).className="colname";
+  idlist["rn_"+rcRownum(ecell)].className="rowname";
+  cursorhidden=true;
+}
+
+//
+// Routine to set the display attribute of an HTML element with an ID
+//
+// idlist should be an array of ids and v should be "block" or "none"
+//
+
+function set_display(idlist,v) {
+ set_styles(idlist,"display",v);
+ }
+
+//
+// Routine to set the a style attribute of an HTML element with an ID
+//
+// idlist should be an array of ids, s the style name, and v the new value
+//
+
+function set_styles(idlist,s,v) {
+ for (var i=0; i<idlist.length; i++) {
+  var id=idlist[i];
+  var idnode=document.getElementById(id);
+  if (idnode) {
+   idnode.style[s]=v;
+   }
+  }
+ }
+
+//
+// Routine to set the various editcoord hidden values for use by the next browser page
+//
+
+function set_editcoords(c) {
+ document.ftabs.editcoords.value=c;
+ document.f0.editcoords.value=c;
+ document.fsl.editcoords.value=c;
+ }
+
+//
+// Routine to set an HTML element with an ID to have new HTML under it
+//
+
+function set_text(id,t) {
+ var node=document.getElementById(id);
+ node.innerHTML = t;
+ }
+
+//
+// Routine to set the property of a list of form f0 items
+//
+// namelist should be an array of names, p the property, and v should be the value
+//
+
+function set_properties_name(namelist,p,v) {
+ for (var i=0; i<namelist.length; i++) {
+  document.f0[namelist[i]][p]=v;
+  }
+ }
+
+
+//
+// Routine to set a list of style attributes of an id
+//
+// id is the id, avlist an array with the style attribute and values as "attrib:value"
+//
+
+function set_styles_id(id,avlist) {
+ var idnode=document.getElementById(id);
+ if (idnode) {
+  for (var i=0;i<avlist.length;i++) {
+   var av=avlist[i].split(":",2);
+   idnode.style[av[0]]=av[1];
+   }
+  }
+ }
+
+//
+// Routine to set a particular option in a select list
+//
+// listname is the name of the list in form f0, oval is the value of the option to select
+//
+
+function set_option_selected(listname,oval) {
+ for (var i=0; i<document.f0[listname].options.length; i++) {
+  if (document.f0[listname].options[i].value.toLowerCase()==oval.toLowerCase()) {
+   document.f0[listname].options[i].selected=true;
+   }
+  else {
+   document.f0[listname].options[i].selected=false;
+   }
+  }
+ }
+
+//
+// Routine to set a particular option in a select list using option value as index into array
+//
+// listname is the name of the list in form f0, arrayn is array with values to match,
+// and oval is the value of the option to select
+//
+
+function set_option_selected_indirect(listname,arrayn,oval) {
+ for (var i=0; i<document.f0[listname].options.length; i++) {
+  if (arrayn[document.f0[listname].options[i].value].toLowerCase()==oval.toLowerCase()) {
+   document.f0[listname].options[i].selected=true;
+   }
+  else {
+   document.f0[listname].options[i].selected=false;
+   }
+  }
+ }
+
+//
+// Routine to set a particular radio button
+//
+// bname is the name of the radio button group in form f0, bval is the value of the button to select
+//
+
+function set_radio_checked(bname,bval) {
+ for (var i=0; i<document.f0[bname].length; i++) {
+  if (document.f0[bname][i].value.toLowerCase()==bval.toLowerCase()) {
+   document.f0[bname][i].checked=true;
+   }
+  else {
+   document.f0[bname][i].checked=false;
+   }
+  }
+ }
+
+//
+// Converts text to something escaped for ajax call here
+//
+
+function encode_field(v) {
+ var rv = v;
+ rv=rv.replace(/\\/g, "\\b");
+ rv=rv.replace(/:/g, "\\c"); // :
+ rv=rv.replace(/\n/g, "\\n");
+ rv=rv.replace(/\r/g, "");
+ return rv;
+}
+
+//
+// Converts escaped AJAX encoded text to normal
+//
+
+function decode_field(v,d) {
+ var rv = v;
+ rv=rv.replace(/\\c/g, ":");
+ rv=rv.replace(/\\e/g, "]]>");
+ rv=rv.replace(/\\n/g, "\n");
+ rv=rv.replace(/\\b/g, "\\");
+ if (!rv) rv = d;
+ return rv;
+}
+
+//
+// Checks for error flags and displays warnings
+//
+
+function check_error() {
+ var str="";
+ if (sheeterror) {
+  str=str+sheeterror;
+  }
+ set_text("warning",str);
+}
+
+//
+// Turns the help section on and off
+//
+
+function toggle_help(helpname) {
+ if (showinghelp) {
+  showinghelp=false;
+  set_display(["helptext"],"none");
+  }
+ else {
+  ajaxgetnamedtext_request(helpname, "helpbody");
+  showinghelp=helpname;
+  set_display(["helptext"],"block");
+  }
+}
+
+//
+// Scrolling stuff
+//
+
+var scrollrow = 0; // last row scrolled off the top
+var sheetclassessaved;
+
+function save_initial_sheet_data() {
+ var coord;
+ var tdid;
+ var trid;
+ if (sheetclassessaved) return;
+ var tableid=document.getElementById("sheet0").childNodes;
+ idlist[tableid.id]=tableid;
+ for (var ts=0;ts<tableid.length;ts++) {
+  if (tableid[ts].nodeName.toLowerCase()!="tbody") continue;
+  var rows=tableid[ts].childNodes;
+  for (var r=0;r<rows.length;r++) {
+   if (rows[r].nodeType!=1 || rows[r].tagName.toLowerCase()!="tr") continue;
+   if (rows[r].id) idlist[rows[r].id]=rows[r]; // remember row ids
+   var kids=rows[r].childNodes; // get td's
+   for (var c=0;c<kids.length;c++) {
+    if (kids[c].nodeType==1) { // ELEMENT
+     idlist[kids[c].id]=kids[c]; // remember cell and row num ids
+     if (kids[c].id.search("_")==-1) {
+      sheetclass[kids[c].id]=kids[c].className; // remember original class
+      }
+     }
+    }
+   }
+  }
+ sheetclassessaved=1;
+
+ if (document.f0.scrollrow.value>0) {
+  var srv = Math.floor(document.f0.scrollrow.value);
+  if (rcRownum(ecell)<=srv) srv=rcRownum(ecell)-1;
+  scroll_to_row(srv+1);
+  set_slider(scrollrow+1);
+  }
+}
+
+var processedskip; // Did we process a skipped row cell?
+
+function scroll_to_row(rnum) {
+ var erow=rcRownum(ecell);
+ var ecol=rcColnum(ecell);
+ hide_cursor();
+ if (erow<rnum) {
+  var newr=rnum;
+  for (;rcRownum(sheetskip[rcColname(ecol)+newr])!=newr;newr++);
+  ecell=sheetskip[rcColname(ecol)+newr];
+  set_editcoords(ecell);
+  }
+ rnum--;
+ var idnode, newrow, replacedrow, newrownum, replacestart;
+ if (rnum>=scrollrow) { // scrolling up - delete rows
+  for (scrollrow++;scrollrow<=rnum;scrollrow++) {
+   idnode=idlist["r_"+scrollrow];
+   if (idnode) idnode.parentNode.removeChild(idnode);
+   delete idlist["r_"+scrollrow];
+   }
+  replacestart=scrollrow;
+  scrollrow--;
+  }
+ else {
+  replacestart=scrollrow+1;
+  scrollrow=rnum;
+  var dfrag=document.createDocumentFragment(); // faster to bunch up then insert
+  for (newrownum=rnum+1;newrownum<replacestart;newrownum++) {
+   newrow=make_row(newrownum);
+   idlist["r_"+newrownum]=newrow;
+   dfrag.appendChild(newrow);
+   }
+  idnode=idlist["r_"+replacestart];
+  idnode.parentNode.insertBefore(dfrag, idnode);
+  }
+ processedskip=true;
+ for (var crow=replacestart;crow<=sheetlastrow;crow++) {
+  replacedrow=make_row(crow);
+  idnode=idlist["r_"+crow]; 
+  if (idnode) idnode.parentNode.replaceChild(replacedrow,idnode);
+  idlist["r_"+crow]=replacedrow;
+  if (!processedskip) break;
+  }
+ move_cursor(ecell,ecell,true);
+ document.f0.scrollrow.value=scrollrow; // remember across pages
+ document.ftabs.scrollrow.value=scrollrow;
+}
+
+function scroll_relative(delta) {
+ if (jsedit || veedit || vetedit || highlighton || loading) return;
+ var newrow=scrollrow+1+delta;
+ if (newrow>=sheetlastrow-5) newrow=sheetlastrow-5;
+ if (newrow<1) newrow=1;
+ scroll_to_row(newrow);
+ set_slider(newrow);
+}
+
+function check_draglook() {
+ var eid=document.getElementById("draghandle");
+ if (!eid) return;
+ if (jsedit || veedit || vetedit || highlighton || loading) {
+  eid.style.backgroundColor="#CCCC99";
+  }
+ else {
+  eid.style.backgroundColor="#DDFFDD";
+  }
+}
+
+//
+// Creates a table row node for row "rownum" using the "sheet..." data
+//
+
+function make_row(rownum) {
+ var newrow=document.createElement("tr"); // make a row
+ newrow.id="r_"+rownum;
+ var newrowlabel=document.createElement("td"); // add the row name
+ newrowlabel.className="rowname";
+ newrowlabel.id="rn_"+rownum;
+ newrowlabel.appendChild(document.createTextNode(rownum));
+ newrow.appendChild(newrowlabel);
+ idlist[newrowlabel.id]=newrowlabel;
+ var newtd, newdiv, coord;
+ processedskip=false;
+ for (var col=1;col<=sheetlastcol;col++) { // create each of the cells
+  newtd=document.createElement("td");
+  coord=rcColname(col)+rownum
+  newtd.id=coord;
+  idlist[coord]=newtd;
+  newtd.className=sheetclass[coord];
+  newtd.onclick=function(e){rc0(this.id);};
+  if (sheetskip[coord]!=coord) { // skipped cell
+   var scoord=sheetskip[coord];
+   var srow=rcRownum(scoord);
+   if (srow<rownum) processedskip=true; // covered by cell above us
+   if (srow>=scrollrow+1 || srow==rownum) continue; // unless we are covered by a visible cell...
+   newtd.className="skippedcell"; // ...gray placeholder cell
+   newdiv=newtd.appendChild(document.createElement("div"));
+   newtd=newrow.appendChild(newtd);
+   continue;
+   }
+  newtd.colSpan=sheetcolspan[coord]; // other cell settings
+  newtd.rowSpan=sheetrowspan[coord];
+  newdiv=newtd.appendChild(document.createElement("div"));
+  newdiv.innerHTML=sheetvals[coord];
+  newdiv.style.textAlign=sheetalign[coord];
+  var allstyles=sheetattribs[coord];
+  var estylepos=allstyles.lastIndexOf("|");
+  var estyle=estylepos>=0 ? allstyles.substr(estylepos+1) : "";
+  if (estyle) { // if explicit style (last in sheetattribs), set it
+   newtd.style.cssText=decode_field(estyle,"");
+   }
+  newtd=newrow.appendChild(newtd);
+  }
+ return newrow;
+}
+
+//
+// Drag stuff
+//
+
+var deltaY;
+var dragnode;
+
+function begindrag(e) {
+ if (jsedit || veedit || vetedit || highlighton || loading) return;
+ if (!e) e=window.event;
+ dragnode=document.getElementById("draghandle");
+ deltaY=e.clientY - parseInt(dragnode.style.top);
+ var newrow=scrollrow+1;
+ document.getElementById("statusthing").innerHTML=newrow;
+
+ dragnode.style.backgroundColor="#99FF99";
+ document.onmousemove=function(e) {dragmove(e);};
+ document.onmouseup=function(e) {dragend(e);return false;};
+}
+
+function dragmove(e) {
+ if (!e) e=window.event;
+ dragnode=document.getElementById("draghandle");
+ var newtop = e.clientY - deltaY;
+ if (newtop<17) newtop = 17;
+ if (newtop>150) newtop = 150;
+ dragnode.style.top = newtop + "px";
+ var newrow=1+Math.floor((sheetlastrow-5)*(newtop-17)/140);
+ document.getElementById("statusthing").innerHTML=newrow;
+}
+
+function dragend(e) {
+ document.getElementById("statusthing").innerHTML="&nbsp;";
+ document.onmousemove=null;
+ document.onmouseup=null;
+ var newtop = parseInt(dragnode.style.top);
+ var newrow=1+Math.floor((sheetlastrow-5)*(newtop-17)/140);
+ dragnode.style.backgroundColor="#DDFFDD";
+ scroll_to_row(newrow);
+}
+
+function set_slider(row) {
+ var newtop=Math.ceil(17+(row-1)*140/(sheetlastrow-5));
+ document.getElementById("draghandle").style.top=newtop + "px";
+}
+
+function slider_page(e) {
+ var delta=Math.floor((sheetlastrow-5)/5);
+ delta=delta>20?20:delta;
+ if (!e) e=window.event;
+ if (e.clientY<document.getElementById("draghandle").offsetTop) {
+  scroll_relative(-delta);
+  }
+ else {
+  scroll_relative(delta);
+  }
+}
+
+function do_pageupdn(keystr) {
+ if (jsedit || veedit || vetedit || highlighton || loading) return;
+ var delta=Math.floor((sheetlastrow-5)/5);
+ delta=delta>20?20:delta;
+ var erow = rcRownum(ecell);
+ var ecol = rcColnum(ecell);
+ if (keystr=="[pgup]") {
+  delta = -delta;
+  }
+ scroll_relative(delta);
+ var oldecell=ecell;
+ erow = erow+delta;
+ if (erow<1) erow=1;
+ if (erow>=sheetlastrow) erow=sheetlastrow-1;
+ for (;rcRownum(sheetskip[rcColname(ecol)+erow])!=erow;erow++);
+ ecell=sheetskip[rcColname(ecol)+erow];
+ ecell=move_cursor(oldecell,ecell,true);
+ set_editcoords(ecell);
+}
+
+function scroll_to_home() {
+ scroll_to_row(1);
+ set_slider(1);
+}
+
+var scroll_timer1;
+var scroll_timer2;
+var scroll_direction;
+
+function begin_scroll(amount,thisnode) {
+ document.onmouseup = function () {
+  window.clearTimeout(scroll_timer1);
+  window.clearTimeout(scroll_timer2);
+  thisnode.style.backgroundColor = "white";
+  document.onmouseup=null;
+  }
+ scroll_relative(amount);
+ scroll_direction = amount;
+ scroll_timer1 = window.setTimeout("scroll_timeout();", 500); // wait .5 second for first repeat
+ thisnode.style.backgroundColor = "#999999";
+}
+
+function scroll_timeout() {
+ window.clearTimeout(scroll_timer1);
+ scroll_relative(scroll_direction);
+ scroll_timer2 = window.setTimeout("scroll_timeout();", 100); // wait .1 second for subsequent repeats
+ }
+
+//
+// Routine to highlight a block of cells
+//
+// Cells from cell1 to cell2 (cell2>=cell1) are turned on, others will be turned off
+// The <td>'s are set to bgcolor. If null, all are turned off.
+// Returns cell2a (modified from cell2 so cell2>=cell1 in both rows and colums)
+//
+
+var hlist={};
+var hOldbg={};
+var hOldcorner;
+
+function highlight_block(cell1, cell2, bgcolor) {
+ var cr, r, c, node, kids;
+ if (hOldcorner) { // remove old corner marker
+  node=idlist[hOldcorner];
+  kids=node.childNodes;
+  kids[0].className = "cellnormal";
+  hOldcorner=null;
+  }
+ var r1=rcRownum(cell1); // get r and c
+ var c1=rcColnum(cell1);
+ var r2=rcRownum(cell2);
+ var c2=rcColnum(cell2);
+ if (r1>r2) r2=r1; // check limits
+ if (r2>sheetlastrow) r2=sheetlastrow;
+ if (c1>c2) c2=c1;
+ if (c2>sheetlastcol) c2=sheetlastcol;
+ cell2 = rcColname(c2)+r2; // update name
+ if (cell2!=cell1) { // highlight bottom right corner
+  node=idlist[cell2];
+  if (node) {
+   kids=node.childNodes;
+   kids[0].className = "cellcorner";
+   hOldcorner=cell2;
+   }
+  else hOldcorner=null;
+  }
+ for (cr in hlist) { // mark exising ones for deletion
+  hlist[cr] = 2;
+  }
+ for (r=r1;r<=r2 && bgcolor;r++) {
+  for (c=c1;c<=c2;c++) {
+   cr=rcColname(c)+r;
+   if (!hlist[cr]) { // if not set yet, set it
+    node=idlist[cr];
+    if (node && sheetskip[cr]==cr) {
+     hOldbg[cr] = node.style.backgroundColor;
+     node.style.backgroundColor = bgcolor;
+     }
+    }
+   hlist[cr] = 1; // mark newly set
+   }
+  }
+ for (cr in hlist) {
+  if (hlist[cr]==2) {
+   node=idlist[cr];
+   if (node && sheetskip[cr]==cr) {
+     node.style.backgroundColor = hOldbg[cr];
+    }
+   delete hlist[cr];
+   }
+  }
+ set_text("rangeend", "<b>:&nbsp;"+cell2+'</b>&nbsp;<span class="smaller">('+(c2-c1+1)+"x"+(r2-r1+1)+")</span>");
+ return cell2;
+}
+
+var highlighton=false;
+var highlightpos;
+
+function start_highlight() {
+ highlighton=true;
+ highlightpos=ecell;
+ highlight_block(ecell, ecell, "#DDFFDD");
+ check_draglook();
+ set_editcoords(ecell);
+}
+
+function end_highlight() {
+ highlight_block(ecell, ecell, null);
+ set_text("rangeend", "");
+ highlighton=false;
+ check_draglook();
+ set_editcoords(ecell);
+}
+
+</script>
+

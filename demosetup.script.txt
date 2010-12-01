@@ -1,0 +1,86 @@
+log <i>Running demosetup.script.txt</i><br>
+log <b>Ensuring that the directory that holds all local wikiCalc data has been created</b>
+mkdir wkcdata
+log <b>Creating sub-directories needed</b>
+mkdir wkcdata/sites
+mkdir wkcdata/sites/demosite
+mkdir wkcdata/demohtml
+log <b>Creating files</b>
+mkfile wkcdata/hostinfo.txt
+filetype:wkchostinfo:version:1
+host:demohost:longname:Host setup by Demonstration Setup:url::loginname::loginpassword::wkcpath:
+site:demosite:longname:Site setup by Demonstration Setup:host:demohost:nameonhost:demosite:authoronhost:demoauthor:authorfromlogin:no:htmlpath:wkcdata/demohtml/:htmlurl::editurl::checked:1
+[END]
+mkfile wkcdata/sites/demosite/demopage1.edit.demoauthor.txt
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary=wkc-boundary
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.1
+fullname:wikiCalc Demonstration Page
+templatetext:
+templatefile:
+lastmodified:
+lastauthor:
+basefiledt:
+backupfiledt:
+reverted:
+editcomments:
+publishsource:
+publishlive:
+--wkc-boundary
+Content-type: text/plain; charset=UTF-8
+
+version:1.2
+cell:A1:t:= A page to try some of wikiCalc's features =\n\nYou can use this page to try editing with wikiCalc. It will save you the time of tediously setting up a sample page before you can experiment with other features, such as editing.\n\nTry clicking on one of the cells below which should bring you to the Edit tab editing that cell. You can use the keyboard's arrow keys to move from cell to cell. '''If you move the cursor to the 2006 sales number in cell C4 (155.0) and then type a new number and press Enter all the other numbers calculated from it will change.'''\n\nText like this that covers more than one cell is really text in one cell that has been merged with the cells next to it using the /Range Merge command.:f:2:c:3:colspan:8
+cell:A3:t:Sample financial calculation in a table with borders:f:2:c:3:cf:2:rowspan:4
+cell:B3:t:Year:f:1:cf:1
+cell:C3:v:2006:b:1:1:1:1:f:1:c:1:bg:2:ntvf:1
+cell:D3:vtf:n:2007:1+C3:b:1:1:1:1:f:1:c:1:bg:2:ntvf:1
+cell:E3:vtf:n:2008:1+D3:b:1:1:1:1:f:1:c:1:bg:2:ntvf:1
+cell:F3:vtf:n:2009:1+E3:b:1:1:1:1:f:1:c:1:bg:2:ntvf:1
+cell:G3:vtf:n:2010:1+F3:b:1:1:1:1:f:1:c:1:bg:2:ntvf:1
+cell:H3:vtf:n:2011:1+G3:b:1:1:1:1:f:1:c:1:bg:2:ntvf:1
+cell:A4:f:2:c:3:cf:2
+cell:B4:t:Sales:f:1:cf:1
+cell:C4:v:155:b:1:1:1:1:ntvf:2
+cell:D4:vtf:n:170.5:1.1*C4:b:1:1:1:1:ntvf:2
+cell:E4:vtf:n:187.55:1.1*D4:b:1:1:1:1:ntvf:2
+cell:F4:vtf:n:206.305:1.1*E4:b:1:1:1:1:ntvf:2
+cell:G4:vtf:n:226.9355:1.1*F4:b:1:1:1:1:ntvf:2
+cell:H4:vtf:n:249.62905:1.1*G4:b:1:1:1:1:ntvf:2
+cell:A5:f:2:c:3:cf:2
+cell:B5:t:Cost:f:1:cf:1
+cell:C5:vtf:n:124:.8*C4:b:1:1:1:1:ntvf:2
+cell:D5:vtf:n:136.4:.8*D4:b:1:1:1:1:ntvf:2
+cell:E5:vtf:n:150.04:.8*E4:b:1:1:1:1:ntvf:2
+cell:F5:vtf:n:165.044:.8*F4:b:1:1:1:1:ntvf:2
+cell:G5:vtf:n:181.5484:.8*G4:b:1:1:1:1:ntvf:2
+cell:H5:vtf:n:199.70324:.8*H4:b:1:1:1:1:ntvf:2
+cell:A6:f:2:c:3:cf:2
+cell:B6:t:Profit:f:1:cf:1
+cell:C6:vtf:n:31:C4-C5:b:1:1:1:1:ntvf:2
+cell:D6:vtf:n:34.1:D4-D5:b:1:1:1:1:ntvf:2
+cell:E6:vtf:n:37.51:E4-E5:b:1:1:1:1:ntvf:2
+cell:F6:vtf:n:41.261:F4-F5:b:1:1:1:1:ntvf:2
+cell:G6:vtf:n:45.3871:G4-G5:b:1:1:1:1:ntvf:2
+cell:H6:vtf:n:49.92581:H4-H5:b:1:1:1:1:ntvf:2
+cell:F8:t:Total Profit\c :f:1:cf:1:colspan:2
+cell:H8:vtf:n:239.18391:SUM(C6\cH6):f:1:ntvf:2
+sheet:r:8:c:8
+font:1:normal bold * *
+font:2:* x-small *
+color:1:rgb(255,255,255)
+color:2:rgb(0,0,0)
+color:3:rgb(102,102,0)
+border:1:1px solid rgb(0,0,0)
+border:2:1px solid rgb(255,0,0)
+cellformat:1:right
+cellformat:2:center
+valueformat:1:0
+valueformat:2:#,##0.0
+--wkc-boundary--
+[END]
+log <br><b>If you publish a page the resulting HTML will be placed in the wkcdata/demohtml directory</b><br>
+log <b>Setup completed! Click Continue and then select the wikiCalc Demonstration Page to edit.</b>

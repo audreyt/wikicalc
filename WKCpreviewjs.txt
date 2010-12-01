@@ -1,0 +1,31 @@
+<script>
+
+// WKCpreviewjs.txt
+
+// (c) Copyright 2006 Software Garden, Inc.
+// All Rights Reserved.
+// Subject to Software License included with WKC.pm
+
+var currentconfig;
+
+function switchto(newconfig) {
+ set_config(newconfig);
+ return false;
+}
+
+function set_config(config) {
+ set_display(["c1publish","c1view"], "none");
+ set_display(["c1"+config], "block");
+
+ set_styles(["publishbutton", "viewbutton", "helpbutton"],"borderTop","none");
+ set_styles(["publishbutton", "viewbutton", "helpbutton"],"paddingTop","3px");
+ set_styles([config+"button"],"borderTop","2px solid black");
+ set_styles([config+"button"],"paddingTop","1px");
+
+ if (config=="publish") {
+  document.f0.editcomments.focus();
+  }
+}
+
+</script>
+
